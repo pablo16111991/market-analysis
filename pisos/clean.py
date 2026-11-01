@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent
 COLS = ["id", "url", "state", "in_scope", "price_first", "price_last", "price_changes", "drop_pct", "reduced_price",
         "eur_m2", "rooms", "bathrooms", "surface", "floor", "subtype", "exterior", "antiquity", "conservation",
         "orientation", "energy", "energy_kwh", "co2", "construction", "ground_surface", "locality", "neighborhood", "municipality", "zone", "lat", "lon", "client_type", "client_alias",
-        "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "okupa_txt", "nuda_txt", "a_reformar", "publication_date", "first_seen",
+        "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "okupa_txt", "nuda_txt", "a_reformar", "seccion", "renta_idx_seccion", "renta_idx", "nivel_zona", "publication_date", "first_seen",
         "last_seen", "days_listed", "runs_seen", "dup_n", "desc_start"]
 
 
@@ -35,6 +35,47 @@ def num(x):
         return None
 
 
+# --- Renta por zona (INE, ver ref/build_renta.py): índice 100 = media de Barcelona ciudad ---
+REF = ROOT / "data" / "ref"
+BANDS = [75, 90, 110, 135]  # cortes del índice -> niveles 1..5 (1 baja, 2 media-baja, 3 media, 4 media-alta, 5 alta)
+
+
+def _inside(x, y, ring):
+    c = False
+    j = len(ring) - 1
+    for i in range(len(ring)):
+        xi, yi = ring[i]; xj, yj = ring[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            c = not c
+        j = i
+    return c
+
+
+def load_renta():
+    p, q = REF / "secciones_2024.json", REF / "renta_secciones.csv"
+    if not (p.exists() and q.exists()):
+        return None, {}, None
+    renta = {r["codigo"]: num(r["renta_persona"]) for r in csv.DictReader(open(q, encoding="utf-8"))}
+    base = renta.get("08019")  # Barcelona ciudad
+    secs = []
+    for s in json.load(open(p)):
+        for poly in s["polys"]:
+            xs = [pt[0] for pt in poly[0]]; ys = [pt[1] for pt in poly[0]]
+            secs.append((min(xs), max(xs), min(ys), max(ys), poly, s["cusec"]))
+    return secs, renta, base
+
+
+def seccion(secs, lon, lat):
+    for x0, x1, y0, y1, poly, cusec in secs:
+        if x0 <= lon <= x1 and y0 <= lat <= y1 and _inside(lon, lat, poly[0]) and not any(_inside(lon, lat, h) for h in poly[1:]):
+            return cusec
+    return None
+
+
+def nivel(idx):
+    return None if idx is None else 1 + sum(idx >= b for b in BANDS)
+
+
 def in_scope(r, sc):
     # Siempre fuera: ocupado/okupa, nuda propiedad/usufructo y subasta (por bandera de Fotocasa o por texto).
     # Los alquilados con inquilinos (rented) SÍ entran: se reportan con su columna.
@@ -43,6 +84,8 @@ def in_scope(r, sc):
     sc = sc or {}
     ex = {n.lower() for n in sc.get("exclude_neighborhoods", [])}
     if ex and ((r["neighborhood"] or "").lower() in ex or (r["locality"] + "/" + (r["neighborhood"] or "")).lower() in ex):
+        return 0
+    if sc.get("min_nivel_zona") and (r.get("nivel_zona") or 0) < sc["min_nivel_zona"]:
         return 0
     if sc.get("min_surface") and not (num(r["surface"]) or 0) >= sc["min_surface"]:
         return 0
@@ -112,8 +155,26 @@ def build(sid, scope):
         d["okupa_txt"] = int(bool(RE_OKUPA.search(t)) or (d["rented"] != "1" and bool(RE_OCUPADO.search(t))))
         d["nuda_txt"] = int(bool(RE_NUDA.search(txt)))
         d["a_reformar"] = int(bool(RE_REFORMAR.search(txt)))
-        d["in_scope"] = in_scope(d, scope)
         recs.append(d)
+    # Renta de la zona (INE). Por barrio = mediana de sus pisos, porque Fotocasa da coordenadas aproximadas.
+    secs, renta, base = load_renta()
+    for r in recs:
+        r["seccion"] = r["renta_idx_seccion"] = None
+        if secs and num(r["lat"]) and num(r["lon"]):
+            cs = seccion(secs, num(r["lon"]), num(r["lat"]))
+            rp = renta.get(cs) if cs else None
+            r["seccion"] = cs
+            r["renta_idx_seccion"] = round(100 * rp / base) if rp and base else None
+    from statistics import median
+    grp = defaultdict(list)
+    for r in recs:
+        if r["renta_idx_seccion"] is not None:
+            grp[(r["locality"], r["neighborhood"] or r["municipality"])].append(r["renta_idx_seccion"])
+    for r in recs:
+        g = grp.get((r["locality"], r["neighborhood"] or r["municipality"]))
+        r["renta_idx"] = round(median(g)) if g else None
+        r["nivel_zona"] = nivel(r["renta_idx"])
+        r["in_scope"] = in_scope(r, scope)
     key = lambda r: (r["price_last"], r["surface"], r["rooms"], r["neighborhood"], r["client_alias"])
     from collections import Counter
     cnt = Counter(key(r) for r in recs)
