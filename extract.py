@@ -233,6 +233,19 @@ def features(row):
     tcc = CC_RE.search(tt)
     if tcc and out["cc"] and int(tcc.group(1)) in CC_VALID and int(tcc.group(1)) != out["cc"]:
         flags.append("cc_discrepancia")  # el título dice otro cc que el modelo
+    out["condition"] = attrs.get("condition")
     out["shop_signals"] = len(SHOP_RE.findall(t))
     out["flags"] = ",".join(flags)
     return out
+
+
+def features_generic(row):
+    """Para productos que no son motos: marca, modelo y estado a partir de los atributos de Wallapop."""
+    title, desc = row.get("title") or "", row.get("description") or ""
+    attrs = row.get("attrs") or {}
+    t = norm(f"{title} {desc}")
+    tt = norm(title)
+    brand = attrs.get("brand") or find_brand(title)
+    flags = [k for k, rx in FLAG_RES.items() if rx.search(tt if k == "posible_nueva" else t)]
+    return {"brand": brand, "model": attrs.get("model"), "condition": attrs.get("condition"),
+            "shop_signals": len(SHOP_RE.findall(t)), "flags": ",".join(flags)}

@@ -15,12 +15,17 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from collect import ROOT, read_all
-from extract import features, norm
+import yaml
+from extract import features, features_generic, norm
 
-COLS = ["id", "url", "title", "state", "state_date", "price_first", "price_last", "price_final", "price_changes",
-        "reserved_ever", "brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter",
-        "flags", "is_new", "seller_type", "seller_listings", "dup_n", "city", "region", "distance_km", "created_at", "first_seen", "last_seen", "days_listed",
-        "runs_seen", "views", "favorites", "desc_start"]
+BASE = ["id", "url", "title", "state", "state_date", "price_first", "price_last", "price_final", "price_changes",
+        "reserved_ever", "condition", "is_new", "seller_type", "seller_listings", "dup_n", "city", "region",
+        "distance_km", "created_at", "first_seen", "last_seen", "days_listed", "runs_seen", "views", "favorites",
+        "desc_start"]
+EXTRA = {
+    "moto": ["brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter", "flags"],
+    "generic": ["brand", "model", "flags"],
+}
 
 
 def dist(r):
@@ -42,7 +47,7 @@ def num(x):
         return None
 
 
-def clean_product(pid, allraw):
+def clean_product(pid, allraw, extractor="moto"):
     search, details, status = ([r for r in allraw[k] if r["product"] == pid] for k in ("search", "details", "status"))
     if not search:
         return 0
@@ -64,7 +69,8 @@ def clean_product(pid, allraw):
         desc = next((r["description"] for r in reversed(rows) if r["description"]), "")
         d, s = det.get(iid), st.get(iid)
         attrs = json.loads(d["attrs_json"]) if d and d.get("attrs_json") else {}
-        f = features({"title": last["title"], "description": desc, "attrs": attrs})
+        fx = features if extractor == "moto" else features_generic
+        f = fx({"title": last["title"], "description": desc, "attrs": attrs})
         prices = [num(r["price"]) for r in rows]
         changes = sum(1 for a, b in zip(prices, prices[1:]) if a != b)
         seen_last = last["run_id"] == last_run
@@ -87,7 +93,7 @@ def clean_product(pid, allraw):
             "state": state, "state_date": state_date, "price_first": prices[0], "price_last": prices[-1],
             "price_final": price_final, "price_changes": changes,
             "reserved_ever": int(any(r["reserved"] == "1" for r in rows)),
-            **{k: f[k] for k in ("brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter", "flags")},
+            **{k: f.get(k) for k in EXTRA[extractor]}, "condition": f.get("condition"),
             "is_new": int("posible_nueva" in f["flags"]),
             "seller_type": "tienda" if f["shop_signals"] >= 1 or per_seller[last["user_id"]] >= 3 else "particular",
             "seller_listings": per_seller[last["user_id"]],
@@ -98,7 +104,7 @@ def clean_product(pid, allraw):
             "desc_start": desc.replace("\n", " ")[:140],
         })
     # Duplicados: mismos título+precio+km+año (concesionarios que repiten el anuncio)
-    key = lambda r: (re.sub(r"[^a-z0-9]", "", norm(r["title"])), r["price_last"], r["km"], r["year"])
+    key = lambda r: (re.sub(r"[^a-z0-9]", "", norm(r["title"])), r["price_last"], r.get("km"), r.get("year"))
     dups = Counter(key(r) for r in recs)
     for r in recs:
         r["dup_n"] = dups[key(r)]
@@ -106,7 +112,7 @@ def clean_product(pid, allraw):
     out = ROOT / "data" / "clean"
     out.mkdir(parents=True, exist_ok=True)
     with open(out / f"{pid}.csv", "w", newline="", encoding="utf-8-sig") as fh:
-        w = csv.DictWriter(fh, fieldnames=COLS)
+        w = csv.DictWriter(fh, fieldnames=BASE + EXTRA[extractor])
         w.writeheader()
         w.writerows(recs)
     print(f"[{pid}] {len(recs)} anuncios: {dict(Counter(r['state'] for r in recs))}")
@@ -115,8 +121,9 @@ def clean_product(pid, allraw):
 
 if __name__ == "__main__":
     only = sys.argv[1] if len(sys.argv) > 1 else None
+    cfg = {p["id"]: p for p in yaml.safe_load(open(ROOT / "products.yml", encoding="utf-8"))["products"]}
     raw = ROOT / "data" / "raw"
     allraw = {k: read_all(raw, k) for k in ("search", "details", "status")}
     for pid in sorted({r["product"] for r in allraw["search"]}):
         if not only or pid == only:
-            clean_product(pid, allraw)
+            clean_product(pid, allraw, cfg.get(pid, {}).get("extractor", "generic"))

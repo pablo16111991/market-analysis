@@ -5,6 +5,7 @@
 # min_price  -> filtro de precio mínimo del servidor (quita recambios). Opcional
 # max_price  -> opcional
 # max_pages  -> páginas máximas a recorrer (por defecto 12)
+# extractor  -> moto | generic (qué columnas y reglas usa clean.py)
 # lat/lon    -> centro de búsqueda (por defecto Barcelona)
 # distance_km-> radio de búsqueda desde lat/lon (opcional; sin él, toda España)
 products:
@@ -12,6 +13,7 @@ products:
     query: "kymco k xct 125"
     category: 14000
     min_price: 1500
+    extractor: moto
 
   - id: triumph-trident-660
     query: "triumph trident 660"
@@ -19,3 +21,11 @@ products:
     min_price: 4000   # por debajo: estafa o moto destrozada (filtro de limpieza, no presupuesto)
     max_price: 7000   # por encima: casi nueva (filtro de limpieza)
     distance_km: 300   # Cataluña y alrededores
+    extractor: moto
+
+  - id: nux-mg-30
+    query: "nux mg-30"
+    category: 12463   # Cine, libros y música (instrumentos)
+    min_price: 120    # por debajo: solo accesorio o estafa
+    max_price: 220    # por encima: pack o incluye más cosas
+    extractor: generic   # se envía por correo: toda España, sin radio
