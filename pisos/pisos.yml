@@ -1,7 +1,9 @@
 # Búsquedas de pisos en Fotocasa (solo compra). Un bloque por búsqueda; para añadir una, copia un bloque.
 # Descarga (irreversible, lo aplica Fotocasa): zones, min_price, max_price, min_rooms.
 # scope (reversible, solo marca in_scope en clean.py): subtypes (INTERMEDIATE_FLOOR, GROUND_FLOOR, PENTHOUSE,
-#   TOP_FLOOR, DUPLEX, STUDIO, HOUSE_CHALET...), exterior (true), excluir ocupados/nuda propiedad/subasta siempre.
+#   DUPLEX_APARTMENT, APARTMENT, LOFT, STUDIO, HOUSE_CHALET...), min_surface (m2), exterior (true).
+# Siempre fuera de ámbito: ocupado/okupa, nuda propiedad/usufructo y subasta (bandera o texto) y duplicados (queda 1 por grupo).
+# Los alquilados con inquilinos entran (columna rented).
 # zones = slugs de Fotocasa (.../viviendas/<slug>/todas-las-zonas/l)
 searches:
   - id: pisos-bcn-norte
@@ -10,4 +12,5 @@ searches:
     max_price: 300000
     min_rooms: 2
     scope:
-      subtypes: [INTERMEDIATE_FLOOR, GROUND_FLOOR, PENTHOUSE, TOP_FLOOR, DUPLEX]
+      min_surface: 50
+      subtypes: [INTERMEDIATE_FLOOR, GROUND_FLOOR, PENTHOUSE, DUPLEX_APARTMENT, APARTMENT, LOFT, STUDIO]

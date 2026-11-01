@@ -15,8 +15,10 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install httpx pyyaml
-      - run: python collect.py
-      - run: python clean.py
+      - name: Second-hand (Wallapop)
+        run: |
+          python second-hand/collect.py
+          python second-hand/clean.py
       - name: Pisos (Fotocasa)
         continue-on-error: true
         run: |

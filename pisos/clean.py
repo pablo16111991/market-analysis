@@ -1,15 +1,31 @@
-"""Reconstruye data/pisos/clean/<search>.csv (1 fila por anuncio, último estado) desde TODO lo crudo."""
-import csv, glob, sys
+"""Reconstruye data/clean/<search>.csv (1 fila por anuncio, último estado) desde TODO lo crudo."""
+import csv, glob, json, re, sys
 from collections import defaultdict
 from pathlib import Path
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent
 COLS = ["id", "url", "state", "in_scope", "price_first", "price_last", "price_changes", "drop_pct", "reduced_price",
         "eur_m2", "rooms", "bathrooms", "surface", "floor", "subtype", "exterior", "antiquity", "conservation",
         "orientation", "energy", "energy_kwh", "co2", "construction", "ground_surface", "locality", "neighborhood", "municipality", "zone", "lat", "lon", "client_type", "client_alias",
-        "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "publication_date", "first_seen",
+        "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "okupa_txt", "nuda_txt", "a_reformar", "publication_date", "first_seen",
         "last_seen", "days_listed", "runs_seen", "dup_n", "desc_start"]
+
+
+RE_OKUPA = re.compile(r"okup|ocupaci[oó]n ilegal|ocupantes ilegales|con los ocupantes|sin posesi[oó]n", re.I)
+RE_OCUPADO = re.compile(r"ocupad[oa]s?\b", re.I)
+RE_OKUPA_NEG = re.compile(r"(no|sin|libre de|desocupad)\W+(est[aá]\W+)?(ocupad|ocupantes|okup)|no (est[aá] )?okup", re.I)
+RE_NUDA = re.compile(r"nuda\s+propiedad|nua\s+propiedad|usufructo|usufructuari", re.I)
+RE_REFORMAR = re.compile(r"a reformar|para reformar|reforma integral|a rehabilitar|necesita (una )?reforma|para entrar a reformar", re.I)
+
+
+def descriptions():
+    d = {}
+    p = ROOT / "data/raw/items.jsonl"
+    if p.exists():
+        for line in open(p, encoding="utf-8"):
+            o = json.loads(line); d[str(o["id"])] = o["item"].get("description") or ""
+    return d
 
 
 def num(x):
@@ -20,9 +36,13 @@ def num(x):
 
 
 def in_scope(r, sc):
-    if r["occupied"] == "1" or r["bare_ownership"] == "1" or r["auctioned"] == "1" or r["rented"] == "1":
+    # Siempre fuera: ocupado/okupa, nuda propiedad/usufructo y subasta (por bandera de Fotocasa o por texto).
+    # Los alquilados con inquilinos (rented) SÍ entran: se reportan con su columna.
+    if r["occupied"] == "1" or r["bare_ownership"] == "1" or r["auctioned"] == "1" or r["okupa_txt"] or r["nuda_txt"]:
         return 0
     sc = sc or {}
+    if sc.get("min_surface") and not (num(r["surface"]) or 0) >= sc["min_surface"]:
+        return 0
     if sc.get("subtypes") and r["subtype"] not in sc["subtypes"]:
         return 0
     if sc.get("exterior") and r["exterior"] != "1":
@@ -31,7 +51,7 @@ def in_scope(r, sc):
 
 
 def build(sid, scope):
-    files = sorted(glob.glob(str(ROOT / "data/pisos/raw/*_search*.csv")))
+    files = sorted(glob.glob(str(ROOT / "data/raw/*_search*.csv")))
     rows = []
     for f in files:
         for r in csv.DictReader(open(f, encoding="utf-8")):
@@ -40,14 +60,15 @@ def build(sid, scope):
                 rows.append(r)
     if not rows:
         return
+    descs = descriptions()
     removed, now_price, extra = set(), {}, {}
-    for f in sorted(glob.glob(str(ROOT / "data/pisos/raw/*_status.csv"))):
+    for f in sorted(glob.glob(str(ROOT / "data/raw/*_status.csv"))):
         for r in csv.DictReader(open(f, encoding="utf-8")):
             if r["exists"] == "0":
                 removed.add(r["id"])
             elif r["exists"] == "1":
                 removed.discard(r["id"]); now_price[r["id"]] = num(r["price_now"])
-    for f in sorted(glob.glob(str(ROOT / "data/pisos/raw/*_details.csv"))):
+    for f in sorted(glob.glob(str(ROOT / "data/raw/*_details.csv"))):
         for r in csv.DictReader(open(f, encoding="utf-8")):
             extra[r["id"]] = r
     runs = sorted({r["run_id"] for r in rows if r["_complete"]})
@@ -82,6 +103,12 @@ def build(sid, scope):
             d["eur_m2"] = round(d["price_last"] / sur) if sur else None
         e = extra.get(iid, {})
         d.update({k: e.get(k) for k in ("energy", "energy_kwh", "co2", "construction", "ground_surface")})
+        txt = descs.get(iid, "")
+        t = RE_OKUPA_NEG.sub(" ", txt)
+        # "ocupado" suelto solo cuenta si no está alquilado con inquilinos (esos entran)
+        d["okupa_txt"] = int(bool(RE_OKUPA.search(t)) or (d["rented"] != "1" and bool(RE_OCUPADO.search(t))))
+        d["nuda_txt"] = int(bool(RE_NUDA.search(txt)))
+        d["a_reformar"] = int(bool(RE_REFORMAR.search(txt)))
         d["in_scope"] = in_scope(d, scope)
         recs.append(d)
     key = lambda r: (r["price_last"], r["surface"], r["rooms"], r["neighborhood"], r["client_alias"])
@@ -89,8 +116,16 @@ def build(sid, scope):
     cnt = Counter(key(r) for r in recs)
     for r in recs:
         r["dup_n"] = cnt[key(r)]
+    # Duplicados: de cada grupo solo entra en ámbito el de id más bajo (los demás, in_scope=0)
+    keep = {}
+    for r in sorted(recs, key=lambda r: int(r["id"])):
+        if r["in_scope"] and key(r) not in keep:
+            keep[key(r)] = r["id"]
+    for r in recs:
+        if r["in_scope"] and keep[key(r)] != r["id"]:
+            r["in_scope"] = 0
     recs.sort(key=lambda r: (r["state"], r["price_last"]))
-    out = ROOT / "data/pisos/clean"
+    out = ROOT / "data/clean"
     out.mkdir(parents=True, exist_ok=True)
     with open(out / f"{sid}.csv", "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.DictWriter(fh, fieldnames=COLS, extrasaction="ignore"); w.writeheader(); w.writerows(recs)

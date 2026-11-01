@@ -1,10 +1,10 @@
-"""Descarga CRUDA diaria de Fotocasa. Solo añade data/pisos/raw/<run_id>_search.csv."""
+"""Descarga CRUDA diaria de Fotocasa. Solo añade data/raw/<run_id>_search.csv."""
 import csv, json, re, sys, time, argparse, glob, hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 import httpx, yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
 COLS = ["run_id", "search", "zone", "seen_at", "id", "url", "price", "reduced_price", "rooms", "bathrooms", "surface",
         "floor", "antiquity", "conservation", "orientation", "exterior", "subtype", "locality", "neighborhood",
@@ -54,7 +54,7 @@ DROP = {"multimedia", "detail", "detailWithParams", "brandInfo", "promotionLogo"
         "isDiscarded", "isVisited", "isTop", "isSuperTop", "isTopPlus", "isHighlighted", "isPremium", "isNew", "phone",
         "hasListLogo", "isPackAdvancePriority", "isPackBasicPriority", "isPackMinimalPriority", "isPackPremiumPriority",
         "isPrioritaryAndMultimediaRule", "hasPhoneVisibility", "isTrackedPhone", "isMsAdvance"}
-ITEMS = ROOT / "data" / "pisos" / "raw" / "items.jsonl"
+ITEMS = ROOT / "data" / "raw" / "items.jsonl"
 
 
 def stripped(it):
@@ -105,14 +105,14 @@ def detail(client, url_):
 
 def read_raw():
     seen, removed, detailed = {}, set(), set()
-    for f in sorted(glob.glob(str(ROOT / "data/pisos/raw/*_search*.csv"))):
+    for f in sorted(glob.glob(str(ROOT / "data/raw/*_search*.csv"))):
         for r in csv.DictReader(open(f, encoding="utf-8")):
             seen[r["id"]] = (r["run_id"], r["url"])
-    for f in sorted(glob.glob(str(ROOT / "data/pisos/raw/*_status.csv"))):
+    for f in sorted(glob.glob(str(ROOT / "data/raw/*_status.csv"))):
         for r in csv.DictReader(open(f, encoding="utf-8")):
             if r["exists"] == "0":
                 removed.add(r["id"])
-    for f in sorted(glob.glob(str(ROOT / "data/pisos/raw/*_details.csv"))):
+    for f in sorted(glob.glob(str(ROOT / "data/raw/*_details.csv"))):
         for r in csv.DictReader(open(f, encoding="utf-8")):
             detailed.add(r["id"])
     return seen, removed, detailed
@@ -162,7 +162,7 @@ def main():
                     print("  AVISO: incompleto"); ok = False
     if not rows:
         sys.exit("sin datos")
-    out = ROOT / "data" / "pisos" / "raw"
+    out = ROOT / "data" / "raw"
     out.mkdir(parents=True, exist_ok=True)
     with open(out / f"{run_id}_search{'' if ok else '_INCOMPLETO'}.csv", "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=COLS); w.writeheader(); w.writerows(rows)
@@ -175,17 +175,23 @@ def main():
     now_ids = {str(r["id"]) for r in rows}
     with httpx.Client(headers={"User-Agent": UA, "Accept-Language": "es-ES,es;q=0.9"}, timeout=40) as c:
         # 1) los que ya no salen: ¿siguen existiendo? (retirado = vendido o retirado; fuera de filtro = sigue con otro precio)
-        gone = [(i, u) for i, (rid, u) in seen_all.items() if i not in now_ids and i not in removed][:300]
+        gone = [(i, u) for i, (rid, u) in seen_all.items() if i not in now_ids and i not in removed]
         st = []
+        t0 = time.monotonic()
         for i, u in gone:
+            if time.monotonic() - t0 > 20 * 60:
+                break
             ex, d = detail(c, u)
             st.append({"run_id": run_id, "checked_at": now, "id": i, "exists": "" if ex is None else ex, "price_now": d.get("price_now")})
             time.sleep(1)
         write(out / f"{run_id}_status.csv", STATUS_COLS, st)
-        # 2) ficha completa (certificado energético, etc.) una vez por anuncio nuevo, máx. 300 por ejecución
-        todo = [(str(r["id"]), r["url"]) for r in rows if str(r["id"]) not in detailed][:300]
+        # 2) ficha completa (certificado energético, etc.) una vez por anuncio nuevo, hasta 40 min por ejecución; lo que falte, al día siguiente
+        todo = [(str(r["id"]), r["url"]) for r in rows if str(r["id"]) not in detailed]
         ds = []
+        t0 = time.monotonic()
         for i, u in todo:
+            if time.monotonic() - t0 > 40 * 60:
+                break
             ex, d = detail(c, u)
             if ex:
                 ds.append({"run_id": run_id, "checked_at": now, "id": i, **d})

@@ -1,4 +1,4 @@
-# wallapop-analysis
+# second-hand (Wallapop)
 
 Descarga diaria de Wallapop (GitHub Actions) para varios productos, con datos crudos y limpieza aparte.
 
