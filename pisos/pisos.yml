@@ -1,0 +1,13 @@
+# Búsquedas de pisos en Fotocasa (solo compra). Un bloque por búsqueda; para añadir una, copia un bloque.
+# Descarga (irreversible, lo aplica Fotocasa): zones, min_price, max_price, min_rooms.
+# scope (reversible, solo marca in_scope en clean.py): subtypes (INTERMEDIATE_FLOOR, GROUND_FLOOR, PENTHOUSE,
+#   TOP_FLOOR, DUPLEX, STUDIO, HOUSE_CHALET...), exterior (true), excluir ocupados/nuda propiedad/subasta siempre.
+# zones = slugs de Fotocasa (.../viviendas/<slug>/todas-las-zonas/l)
+searches:
+  - id: pisos-bcn-norte
+    zones: [barcelona-capital, badalona, el-masnou, premia-de-mar, mataro]
+    min_price: 150000
+    max_price: 300000
+    min_rooms: 2
+    scope:
+      subtypes: [INTERMEDIATE_FLOOR, GROUND_FLOOR, PENTHOUSE, TOP_FLOOR, DUPLEX]

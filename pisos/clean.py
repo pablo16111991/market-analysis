@@ -1,0 +1,89 @@
+"""Reconstruye data/pisos/clean/<search>.csv (1 fila por anuncio, último estado) desde TODO lo crudo."""
+import csv, glob, sys
+from collections import defaultdict
+from pathlib import Path
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+COLS = ["id", "url", "state", "in_scope", "price_first", "price_last", "price_changes", "drop_pct", "reduced_price",
+        "eur_m2", "rooms", "bathrooms", "surface", "floor", "subtype", "exterior", "antiquity", "conservation",
+        "orientation", "locality", "neighborhood", "municipality", "zone", "lat", "lon", "client_type", "client_alias",
+        "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "publication_date", "first_seen",
+        "last_seen", "days_listed", "runs_seen", "dup_n", "desc_start"]
+
+
+def num(x):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return None
+
+
+def in_scope(r, sc):
+    if r["occupied"] == "1" or r["bare_ownership"] == "1" or r["auctioned"] == "1" or r["rented"] == "1":
+        return 0
+    sc = sc or {}
+    if sc.get("subtypes") and r["subtype"] not in sc["subtypes"]:
+        return 0
+    if sc.get("exterior") and r["exterior"] != "1":
+        return 0
+    return 1
+
+
+def build(sid, scope):
+    files = sorted(glob.glob(str(ROOT / "data/pisos/raw/*_search*.csv")))
+    rows = []
+    for f in files:
+        for r in csv.DictReader(open(f, encoding="utf-8")):
+            if r["search"] == sid:
+                r["_complete"] = "INCOMPLETO" not in f
+                rows.append(r)
+    if not rows:
+        return
+    runs = sorted({r["run_id"] for r in rows if r["_complete"]})
+    last_run = runs[-1] if runs else None
+    by = defaultdict(list)
+    for r in rows:
+        by[r["id"]].append(r)
+    recs = []
+    for iid, rs in by.items():
+        rs.sort(key=lambda r: r["seen_at"])
+        first, last = rs[0], rs[-1]
+        prices = [num(r["price"]) for r in rs if num(r["price"])]
+        changes = sum(1 for a, b in zip(prices, prices[1:]) if a != b)
+        seen_last = any(r["run_id"] == last_run for r in rs)
+        d = dict(last)
+        sur = num(d["surface"])
+        d.update({
+            "state": "activo" if seen_last else "desaparecido",
+            "price_first": prices[0], "price_last": prices[-1], "price_changes": changes,
+            "drop_pct": round(100 * (prices[-1] - prices[0]) / prices[0], 1) if prices[0] else None,
+            "eur_m2": round(prices[-1] / sur) if sur else None,
+            "first_seen": first["seen_at"][:10], "last_seen": last["seen_at"][:10], "runs_seen": len({r["run_id"] for r in rs}),
+        })
+        try:
+            from datetime import date
+            d["days_listed"] = (date.fromisoformat(last["seen_at"][:10]) - date.fromisoformat(d["publication_date"])).days
+        except ValueError:
+            d["days_listed"] = None
+        d["in_scope"] = in_scope(d, scope)
+        recs.append(d)
+    key = lambda r: (r["price_last"], r["surface"], r["rooms"], r["neighborhood"], r["client_alias"])
+    from collections import Counter
+    cnt = Counter(key(r) for r in recs)
+    for r in recs:
+        r["dup_n"] = cnt[key(r)]
+    recs.sort(key=lambda r: (r["state"], r["price_last"]))
+    out = ROOT / "data/pisos/clean"
+    out.mkdir(parents=True, exist_ok=True)
+    with open(out / f"{sid}.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        w = csv.DictWriter(fh, fieldnames=COLS, extrasaction="ignore"); w.writeheader(); w.writerows(recs)
+    from collections import Counter as C
+    print(f"[{sid}] {len(recs)} anuncios ({sum(r['in_scope'] for r in recs)} en ámbito): {dict(C(r['state'] for r in recs))}")
+
+
+if __name__ == "__main__":
+    cfg = yaml.safe_load(open(Path(__file__).with_name("pisos.yml"), encoding="utf-8"))["searches"]
+    for s in cfg:
+        if len(sys.argv) < 2 or sys.argv[1] == s["id"]:
+            build(s["id"], s.get("scope"))
