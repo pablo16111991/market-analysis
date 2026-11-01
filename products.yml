@@ -73,3 +73,4 @@ products:
       - {name: "Super Dink 125", brand: "Kymco", match: "super[\\s-]?dink(?!\\s*[23]\\d\\d)", cc: 125}
     scope:
       variant: "Super Dink 125"
+      km: [20500, 30500]   # mismo rango que la K-XCT de Pablo (25.500 km ±5.000)
