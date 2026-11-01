@@ -1,0 +1,30 @@
+name: scrape-second-hand
+on:
+  schedule:
+    - cron: '17 6 * * *'   # cada día 06:17 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: repo-commits   # comparten grupo: no corren a la vez y se evitan choques al subir
+  cancel-in-progress: false
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install httpx pyyaml
+      - run: python second-hand/collect.py
+      - run: python second-hand/clean.py
+      - name: Commit
+        if: always()
+        run: |
+          git config user.name "market-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add second-hand
+          git diff --cached --quiet || git commit -m "scrape-second-hand $(date -u +%F)"
+          for i in 1 2 3; do git pull --rebase -q && git push && break || sleep 5; done

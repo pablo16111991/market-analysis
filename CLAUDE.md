@@ -6,12 +6,12 @@ Objetivo común: ver por cuánto lo ponen (activos) y por cuánto se vende de ve
 ## Módulos (cada uno tiene su CLAUDE.md, léelo antes de tocarlo)
 - `second-hand/`: Wallapop (motos, pedal NUX…). Ver `second-hand/CLAUDE.md`.
 - `pisos/`: pisos en venta de Fotocasa. Ver `pisos/CLAUDE.md`.
-Para un módulo nuevo: carpeta nueva con su yml, collect.py, clean.py y `data/{raw,clean}`, y añadir un paso en `.github/workflows/scrape.yml`.
+Para un módulo nuevo: carpeta nueva con su yml, collect.py, clean.py y `data/{raw,clean}`, y copiar un workflow `scrape-<módulo>.yml`.
 
 ## Reglas comunes
-- Un solo workflow (`.github/workflows/scrape.yml`, cron diario 06:17 UTC): cada módulo en su paso; los pisos con `continue-on-error` para no tumbar los demás.
+- Un workflow por módulo (`.github/workflows/scrape-second-hand.yml` 06:17 UTC y `scrape-pisos.yml` 07:17 UTC). Comparten `concurrency: repo-commits` (no corren a la vez) y cada uno solo hace commit de su carpeta.
 - Lo crudo (`<módulo>/data/raw`) solo se añade; nunca se edita ni se borra (salvo petición explícita de Pablo para regenerar). Todo lo derivado (`clean`) se rehace desde lo crudo.
 - Dos tipos de filtro: de descarga (irreversibles, mantenerlos amplios) y de ámbito `scope` (reversibles, marcan `in_scope`).
 - Si cambias un clean.py o extract.py, ejecútalo y revisa el CSV antes de subir.
-- Lanzar el workflow a mano: `gh api -X POST repos/pablo16111991/market-analysis/actions/workflows/scrape.yml/dispatches -f ref=main`.
+- Lanzar a mano: `gh api -X POST repos/pablo16111991/market-analysis/actions/workflows/scrape-pisos.yml/dispatches -f ref=main` (o `scrape-second-hand.yml`).
 - Commits: no subas datos a medias mientras una descarga sigue corriendo.

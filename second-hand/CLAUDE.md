@@ -9,7 +9,7 @@ Objetivo: por cuánto lo ponen a la venta (activos) y por cuánto se vende (vend
 - `collect.py`: descarga CRUDA diaria. Solo añade ficheros en `data/raw/<run_id>_{search,details,status}.csv` (todos los productos juntos, columna `product`). `search()` traduce el yml a parámetros de la API de Wallapop.
 - `clean.py`: reconstruye `data/clean/<id>.csv` (1 fila por anuncio, último estado) desde TODO lo crudo. Se puede rehacer siempre.
 - `extract.py`: reglas de extracción. Extractor `moto` (variante, cc, año, km, ABS, A2, quickshifter, flags) y `generic` (marca, modelo, estado). Señales de tienda en `SHOP_RE`.
-- `../.github/workflows/scrape.yml` (en la raíz del repo): Actions diario para TODOS los módulos (second-hand + pisos + commit). Lanzar a mano: `gh api -X POST repos/pablo16111991/market-analysis/actions/workflows/scrape.yml/dispatches -f ref=main`.
+- `../.github/workflows/scrape-second-hand.yml` (raíz del repo): Actions diario de este módulo (collect + clean + commit). Lanzar a mano: `gh api -X POST repos/pablo16111991/market-analysis/actions/workflows/scrape-second-hand.yml/dispatches -f ref=main`.
 
 ## Dos tipos de filtro en products.yml
 1. **Descarga (irreversibles)**: `query`, `category`, `min_price`, `max_price`, `distance_km`, `lat/lon`, `max_pages`. Los aplica Wallapop en su servidor: lo que queda fuera no se guarda nunca. Mantenerlos amplios.
