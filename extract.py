@@ -5,15 +5,12 @@ Cada campo lleva su fuente: 'estructurado' (atributos de Wallapop), 'titulo', 'd
 o vacío. Lo que no se puede saber se deja a None (nunca se inventa). El LLM solo debería
 mirar las filas con huecos o contradicciones.
 
-Uso:
-  python extract.py --db motos.db --csv motos_raw.csv
+Lo usa clean.py (función features).
 """
 import argparse
 import csv
 import json
 import re
-import sqlite3
-from collections import Counter
 from datetime import datetime
 
 THIS_YEAR = datetime.now().year
@@ -226,55 +223,3 @@ def features(row):
         flags.append("cc_discrepancia")  # el título dice otro cc que el modelo
     out["flags"] = ",".join(flags)
     return out
-
-
-COLS = ["id", "title", "price", "reserved", "brand", "brand_src", "model", "model_src", "variant", "cc", "cc_src",
-        "year", "year_src", "km", "km_src", "abs", "flags", "seller_listings", "dup_n", "city", "created_at",
-        "views", "favorites", "url", "desc_start"]
-
-
-def build(db_path, csv_path=None):
-    db = sqlite3.connect(db_path)
-    db.row_factory = sqlite3.Row
-    db.execute("DROP TABLE IF EXISTS features")
-    db.execute(f"CREATE TABLE features ({', '.join(c + (' INTEGER' if c in ('price','reserved','cc','year','km','abs','seller_listings','dup_n','views','favorites') else ' TEXT') for c in COLS)})")
-    rows = db.execute("""SELECT i.*, d.attrs, d.views, d.favorites FROM items i
-                         LEFT JOIN item_details d ON d.item_id = i.id""").fetchall()
-    per_seller = Counter(r["user_id"] for r in rows)
-    parsed = []
-    for r in rows:
-        attrs = json.loads(r["attrs"]) if r["attrs"] else {}
-        parsed.append(features({"title": r["title"], "description": r["description"], "attrs": attrs}))
-
-    def dupkey(r, f):
-        return (re.sub(r"[^a-z0-9]", "", norm(r["title"])), r["price"], f["km"], f["year"])
-
-    dups = Counter(dupkey(r, f) for r, f in zip(rows, parsed))
-    out_rows = []
-    for r, f in zip(rows, parsed):
-        rec = {
-            "id": r["id"], "title": r["title"], "price": r["price"], "reserved": r["reserved"],
-            **f, "seller_listings": per_seller[r["user_id"]], "dup_n": dups[dupkey(r, f)], "city": r["city"],
-            "created_at": (r["created_at"] or "")[:10], "views": r["views"], "favorites": r["favorites"],
-            "url": f"https://es.wallapop.com/item/{r['web_slug']}",
-            "desc_start": (r["description"] or "").replace("\n", " ")[:140],
-        }
-        out_rows.append(rec)
-        db.execute(f"INSERT INTO features VALUES ({','.join('?' * len(COLS))})",
-                   [None if rec[c] is None else (int(rec[c]) if c == "abs" else rec[c]) for c in COLS])
-    db.commit()
-    if csv_path:
-        with open(csv_path, "w", newline="", encoding="utf-8-sig") as fh:
-            w = csv.DictWriter(fh, fieldnames=COLS)
-            w.writeheader()
-            w.writerows(out_rows)
-    return out_rows
-
-
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default="wallapop.db")
-    ap.add_argument("--csv", default=None)
-    a = ap.parse_args()
-    rows = build(a.db, a.csv)
-    print(f"{len(rows)} anuncios procesados" + (f" -> {a.csv}" if a.csv else ""))

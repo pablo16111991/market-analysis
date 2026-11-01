@@ -1,0 +1,13 @@
+# Una entrada por producto. Para añadir otro: copia un bloque y cambia los valores.
+# id         -> nombre de la carpeta en data/ y etiqueta en todos los ficheros
+# query      -> texto de búsqueda en Wallapop
+# category   -> category_id (motos = 14000). Opcional
+# min_price  -> filtro de precio mínimo del servidor (quita recambios). Opcional
+# max_price  -> opcional
+# max_pages  -> páginas máximas a recorrer (por defecto 12)
+# lat/lon    -> centro de búsqueda (por defecto Barcelona)
+products:
+  - id: kymco-k-xct-125
+    query: "kymco k xct 125"
+    category: 14000
+    min_price: 1500
