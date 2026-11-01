@@ -19,7 +19,7 @@ import yaml
 from extract import features, features_generic, norm
 
 BASE = ["id", "url", "title", "state", "state_date", "price_first", "price_last", "price_final", "price_changes",
-        "reserved_ever", "condition", "is_new", "seller_type", "seller_listings", "dup_n", "city", "region",
+        "reserved_ever", "condition", "is_new", "in_scope", "seller_type", "seller_listings", "dup_n", "city", "region",
         "distance_km", "created_at", "first_seen", "last_seen", "days_listed", "runs_seen", "views", "favorites",
         "desc_start"]
 EXTRA = {
@@ -47,7 +47,35 @@ def num(x):
         return None
 
 
-def clean_product(pid, allraw, extractor="moto"):
+def in_scope(r, sc):
+    """Aplica el bloque scope de products.yml. Dato desconocido = no cumple (salvo a2)."""
+    if not sc:
+        return 1
+    def rng(v, lo_hi):
+        try:
+            return lo_hi[0] <= float(v) <= lo_hi[1]
+        except (TypeError, ValueError):
+            return False
+    if "variant" in sc and r.get("variant") != sc["variant"]:
+        return 0
+    if "conditions" in sc and r.get("condition") not in sc["conditions"]:
+        return 0
+    if "year" in sc and not rng(r.get("year"), sc["year"]):
+        return 0
+    if "km" in sc and not rng(r.get("km"), sc["km"]):
+        return 0
+    if sc.get("a2") and str(r.get("a2")) == "0":
+        return 0
+    if "max_days_listed" in sc:
+        try:
+            if float(r["days_listed"]) > sc["max_days_listed"]:
+                return 0
+        except (TypeError, ValueError):
+            return 0
+    return 1
+
+
+def clean_product(pid, allraw, extractor="moto", scope=None):
     search, details, status = ([r for r in allraw[k] if r["product"] == pid] for k in ("search", "details", "status"))
     if not search:
         return 0
@@ -108,6 +136,8 @@ def clean_product(pid, allraw, extractor="moto"):
     dups = Counter(key(r) for r in recs)
     for r in recs:
         r["dup_n"] = dups[key(r)]
+    for r in recs:
+        r["in_scope"] = in_scope(r, scope)
     recs.sort(key=lambda r: (r["state"], r["price_last"] or 0))
     out = ROOT / "data" / "clean"
     out.mkdir(parents=True, exist_ok=True)
@@ -115,7 +145,7 @@ def clean_product(pid, allraw, extractor="moto"):
         w = csv.DictWriter(fh, fieldnames=BASE + EXTRA[extractor])
         w.writeheader()
         w.writerows(recs)
-    print(f"[{pid}] {len(recs)} anuncios: {dict(Counter(r['state'] for r in recs))}")
+    print(f"[{pid}] {len(recs)} anuncios ({sum(r['in_scope'] for r in recs)} en ámbito): {dict(Counter(r['state'] for r in recs))}")
     return len(recs)
 
 
@@ -126,4 +156,5 @@ if __name__ == "__main__":
     allraw = {k: read_all(raw, k) for k in ("search", "details", "status")}
     for pid in sorted({r["product"] for r in allraw["search"]}):
         if not only or pid == only:
-            clean_product(pid, allraw, cfg.get(pid, {}).get("extractor", "generic"))
+            p = cfg.get(pid, {})
+            clean_product(pid, allraw, p.get("extractor", "generic"), p.get("scope"))

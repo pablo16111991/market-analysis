@@ -13,6 +13,9 @@ Analizador de precios de Wallapop de Pablo (sin servicios de pago). Responde en 
 activo, reservado, vendido, caducado, borrado (confirmados al reconsultar la página), desaparecido (dejó de salir, sin confirmar).
 Columnas clave: seller_type (particular/tienda), is_new (parece moto nueva), price_last, price_final, year, km, abs (1/0/vacío=desconocido), flags, dealer, dup_n, days_listed, price_changes, reserved_ever.
 
+## Ámbito del análisis (scope)
+Cada producto de `products.yml` puede llevar un bloque `scope` (variant, conditions, year, km, a2, max_days_listed). No cambia lo que se descarga: `clean.py` marca `in_scope` 1/0 en `data/clean/<id>.csv`. Los informes usan `in_scope==1` salvo que Pablo pida otra ventana. Dato desconocido no cumple year/km/conditions/variant; en a2 desconocido sí entra.
+
 ## Reglas
 - Lo crudo no se edita ni se borra; todo lo derivado se rehace con clean.py.
 - Wallapop: categoría motos = 14000; el filtro de precio mínimo (mitad del valor razonable) quita recambios.

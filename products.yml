@@ -5,6 +5,11 @@
 # min_price  -> filtro de precio mínimo del servidor (quita recambios). Opcional
 # max_price  -> opcional
 # max_pages  -> páginas máximas a recorrer (por defecto 12)
+# scope      -> filtros del ANÁLISIS (no cambian lo que se descarga). clean.py marca in_scope=1/0:
+#                 variant: nombre de variante (solo motos)    conditions: [as_good_as_new, good, new, fair, has_given_it_all]
+#                 year: [min, max]   km: [min, max]   a2: true (descarta las que dicen explícitamente que NO van limitadas)
+#                 max_days_listed: descarta anuncios publicados hace más de N días
+#               Un dato desconocido NO cumple year/km/conditions/variant; en a2 desconocido sí entra.
 # extractor  -> moto | generic (qué columnas y reglas usa clean.py)
 # lat/lon    -> centro de búsqueda (por defecto Barcelona)
 # distance_km-> radio de búsqueda desde lat/lon (opcional; sin él, toda España)
@@ -22,6 +27,11 @@ products:
     max_price: 7000   # por encima: casi nueva (filtro de limpieza)
     distance_km: 300   # Cataluña y alrededores
     extractor: moto
+    scope:
+      variant: "Trident 660"
+      year: [2021, 2024]
+      km: [10000, 25000]
+      a2: true
 
   - id: nux-mg-30
     query: "nux mg-30"
@@ -29,3 +39,5 @@ products:
     min_price: 120    # por debajo: solo accesorio o estafa
     max_price: 220    # por encima: pack o incluye más cosas
     extractor: generic   # se envía por correo: toda España, sin radio
+    scope:
+      conditions: [as_good_as_new, good]
