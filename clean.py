@@ -23,7 +23,7 @@ from extract import features, features_generic, norm, register_variants
 BASE = ["id", "url", "title", "state", "state_date", "price_first", "price_last", "price_final", "price_changes",
         "reserved_ever", "condition", "is_new", "in_scope", "seller_type", "seller_listings", "dup_n", "city", "region",
         "distance_km", "created_at", "first_seen", "last_seen", "days_listed", "runs_seen", "views", "favorites",
-        "desc_start"]
+        "fav_por_visita", "desc_start"]
 EXTRA = {
     "moto": ["brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter", "flags"],
     "generic": ["brand", "model", "flags"],
@@ -144,6 +144,11 @@ def clean_product(pid, allraw, extractor="moto", scope=None):
         r["dup_n"] = dups[key(r)]
     for r in recs:
         r["in_scope"] = in_scope(r, scope)
+        try:
+            v, f = float(r["views"]), float(r["favorites"] or 0)
+            r["fav_por_visita"] = round(f / v, 4) if v >= 1 else None
+        except (TypeError, ValueError):
+            r["fav_por_visita"] = None
     recs.sort(key=lambda r: (r["state"], r["price_last"] or 0))
     out = ROOT / "data" / "clean"
     out.mkdir(parents=True, exist_ok=True)
