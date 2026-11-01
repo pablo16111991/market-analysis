@@ -132,6 +132,8 @@ def build(sid, scope):
         changes = sum(1 for a, b in zip(prices, prices[1:]) if a != b)
         seen_last = any(r["run_id"] == last_run for r in rs)
         d = dict(last)
+        for k in ("neighborhood", "municipality", "locality"):
+            d[k] = (d.get(k) or "").strip()
         sur = num(d["surface"])
         d.update({
             "state": "activo" if seen_last else ("retirado" if iid in removed else ("fuera_de_filtro" if iid in now_price else "desaparecido")),
