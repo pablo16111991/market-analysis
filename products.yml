@@ -56,6 +56,6 @@ products:
       - {name: "Tracer 7", brand: "Yamaha", match: "tracer\\s*7(?!\\d)", cc: 689}
     scope:
       variant: "Tracer 7"
-      year: [2021, 2024]
+      year: [2020, 2024]
       km: [10000, 25000]
       a2: true
