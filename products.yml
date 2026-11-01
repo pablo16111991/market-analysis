@@ -13,6 +13,9 @@
 # variants   -> (solo motos) variantes que reconoce el extractor, con su cilindrada. Ejemplo:
 #                 variants:
 #                   - {name: "Tracer 7", brand: "Yamaha", match: "tracer\\s*7(?!\\d)", cc: 689}
+# comparables-> (opcional) ids de OTROS productos de este fichero que se muestran como referencia junto a este.
+#               Cada comparable es un producto normal (con su query, variants y scope). No se mezclan en los percentiles del principal.
+#                 comparables: [yamaha-xmax-125, honda-forza-125]
 # extractor  -> moto | generic (qué columnas y reglas usa clean.py)
 # lat/lon    -> centro de búsqueda (por defecto Barcelona)
 # distance_km-> radio de búsqueda desde lat/lon (opcional; sin él, toda España)

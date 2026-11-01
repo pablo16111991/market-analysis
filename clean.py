@@ -158,6 +158,10 @@ if __name__ == "__main__":
     cfg = {p["id"]: p for p in yaml.safe_load(open(ROOT / "products.yml", encoding="utf-8"))["products"]}
     for p in cfg.values():
         register_variants(p.get("variants"))
+    for p in cfg.values():
+        for cid in p.get("comparables") or []:
+            if cid not in cfg:
+                print(f"AVISO: {p['id']} tiene como comparable '{cid}', que no existe en products.yml", file=sys.stderr)
     raw = ROOT / "data" / "raw"
     allraw = {k: read_all(raw, k) for k in ("search", "details", "status")}
     for pid in sorted({r["product"] for r in allraw["search"]}):

@@ -14,7 +14,7 @@ Objetivo: por cuánto lo ponen a la venta (activos) y por cuánto se vende (vend
 ## Dos tipos de filtro en products.yml
 1. **Descarga (irreversibles)**: `query`, `category`, `min_price`, `max_price`, `distance_km`, `lat/lon`, `max_pages`. Los aplica Wallapop en su servidor: lo que queda fuera no se guarda nunca. Mantenerlos amplios.
 2. **Ámbito `scope` (reversibles)**: `variant`, `conditions`, `year`, `km`, `a2`, `max_days_listed`. No cambian lo descargado: `clean.py` marca `in_scope` 1/0. Los informes usan `in_scope==1` salvo que Pablo pida otra ventana. Dato desconocido no cumple year/km/conditions/variant; en a2 desconocido sí entra. Si Pablo cambia de ventana, edita el scope y ejecuta `clean.py`.
-Otros campos: `extractor` (moto|generic) y `variants` (solo motos: `{name, brand, match (regex), cc}`; sin tocar código).
+Otros campos: `comparables` (lista de ids de otros productos que se enseñan como referencia aparte, nunca mezclados en los percentiles del principal), `extractor` (moto|generic) y `variants` (solo motos: `{name, brand, match (regex), cc}`; sin tocar código).
 
 ## Productos actuales
 kymco-k-xct-125 (Barcelona y toda España, mín 1500), triumph-trident-660 (300 km, 4000-7000, scope 2021-2024, 10-25k km, A2), nux-mg-30 (toda España, 120-220, scope estado nuevo/como nuevo/buen estado), yamaha-tracer-7 (300 km, 4000-9000, scope 2021-2024, 10-25k km, A2).
