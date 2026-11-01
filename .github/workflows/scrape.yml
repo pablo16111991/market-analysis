@@ -17,6 +17,11 @@ jobs:
       - run: pip install httpx pyyaml
       - run: python collect.py
       - run: python clean.py
+      - name: Pisos (Fotocasa)
+        continue-on-error: true
+        run: |
+          python pisos/collect.py
+          python pisos/clean.py
       - name: Commit
         run: |
           git config user.name "wallapop-bot"

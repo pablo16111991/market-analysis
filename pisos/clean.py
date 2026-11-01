@@ -7,7 +7,7 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 COLS = ["id", "url", "state", "in_scope", "price_first", "price_last", "price_changes", "drop_pct", "reduced_price",
         "eur_m2", "rooms", "bathrooms", "surface", "floor", "subtype", "exterior", "antiquity", "conservation",
-        "orientation", "locality", "neighborhood", "municipality", "zone", "lat", "lon", "client_type", "client_alias",
+        "orientation", "energy", "energy_kwh", "co2", "construction", "ground_surface", "locality", "neighborhood", "municipality", "zone", "lat", "lon", "client_type", "client_alias",
         "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "publication_date", "first_seen",
         "last_seen", "days_listed", "runs_seen", "dup_n", "desc_start"]
 
@@ -40,6 +40,16 @@ def build(sid, scope):
                 rows.append(r)
     if not rows:
         return
+    removed, now_price, extra = set(), {}, {}
+    for f in sorted(glob.glob(str(ROOT / "data/pisos/raw/*_status.csv"))):
+        for r in csv.DictReader(open(f, encoding="utf-8")):
+            if r["exists"] == "0":
+                removed.add(r["id"])
+            elif r["exists"] == "1":
+                removed.discard(r["id"]); now_price[r["id"]] = num(r["price_now"])
+    for f in sorted(glob.glob(str(ROOT / "data/pisos/raw/*_details.csv"))):
+        for r in csv.DictReader(open(f, encoding="utf-8")):
+            extra[r["id"]] = r
     runs = sorted({r["run_id"] for r in rows if r["_complete"]})
     last_run = runs[-1] if runs else None
     by = defaultdict(list)
@@ -55,7 +65,7 @@ def build(sid, scope):
         d = dict(last)
         sur = num(d["surface"])
         d.update({
-            "state": "activo" if seen_last else "desaparecido",
+            "state": "activo" if seen_last else ("retirado" if iid in removed else ("fuera_de_filtro" if iid in now_price else "desaparecido")),
             "price_first": prices[0], "price_last": prices[-1], "price_changes": changes,
             "drop_pct": round(100 * (prices[-1] - prices[0]) / prices[0], 1) if prices[0] else None,
             "eur_m2": round(prices[-1] / sur) if sur else None,
@@ -66,6 +76,12 @@ def build(sid, scope):
             d["days_listed"] = (date.fromisoformat(last["seen_at"][:10]) - date.fromisoformat(d["publication_date"])).days
         except ValueError:
             d["days_listed"] = None
+        if iid in now_price and now_price[iid] and not seen_last:
+            d["price_last"] = now_price[iid]
+            d["drop_pct"] = round(100 * (d["price_last"] - prices[0]) / prices[0], 1)
+            d["eur_m2"] = round(d["price_last"] / sur) if sur else None
+        e = extra.get(iid, {})
+        d.update({k: e.get(k) for k in ("energy", "energy_kwh", "co2", "construction", "ground_surface")})
         d["in_scope"] = in_scope(d, scope)
         recs.append(d)
     key = lambda r: (r["price_last"], r["surface"], r["rooms"], r["neighborhood"], r["client_alias"])
