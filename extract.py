@@ -116,6 +116,19 @@ def find_brand(text):
     return None
 
 
+VARIANT_BRANDS = {"Kymco", "Triumph"}
+
+
+def register_variants(variants):
+    """Variantes definidas en products.yml: [{name, match (regex), cc, brand}]. Tienen prioridad."""
+    for v in variants or []:
+        VARIANT_RES.insert(0, (v["name"], re.compile(v["match"])))
+        if v.get("cc"):
+            VARIANT_CC[v["name"]] = int(v["cc"])
+        if v.get("brand"):
+            VARIANT_BRANDS.add(v["brand"])
+
+
 def find_variant(text):
     t = norm(text)
     for name, rx in VARIANT_RES:
@@ -208,7 +221,7 @@ def features(row):
         out["model"], out["model_src"] = (g, "titulo (estimado)") if g else (None, None)
 
     # La descripción no vale: los concesionarios meten "Kymco K-XCT 125" para colarse en búsquedas.
-    out["variant"] = find_variant(f"{m or ''} {title}") if out["brand"] in (None, "Kymco", "Triumph") else None
+    out["variant"] = find_variant(f"{m or ''} {title}") if out["brand"] is None or out["brand"] in VARIANT_BRANDS else None
     out["cc"], out["cc_src"] = find_cc(out["variant"], out["model"], title, desc)
 
     y = attrs.get("year")

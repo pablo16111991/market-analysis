@@ -10,6 +10,9 @@
 #                 year: [min, max]   km: [min, max]   a2: true (descarta las que dicen explícitamente que NO van limitadas)
 #                 max_days_listed: descarta anuncios publicados hace más de N días
 #               Un dato desconocido NO cumple year/km/conditions/variant; en a2 desconocido sí entra.
+# variants   -> (solo motos) variantes que reconoce el extractor, con su cilindrada. Ejemplo:
+#                 variants:
+#                   - {name: "Tracer 7", brand: "Yamaha", match: "tracer\\s*7(?!\\d)", cc: 689}
 # extractor  -> moto | generic (qué columnas y reglas usa clean.py)
 # lat/lon    -> centro de búsqueda (por defecto Barcelona)
 # distance_km-> radio de búsqueda desde lat/lon (opcional; sin él, toda España)

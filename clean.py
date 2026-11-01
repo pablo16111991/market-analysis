@@ -16,7 +16,7 @@ from pathlib import Path
 
 from collect import ROOT, read_all
 import yaml
-from extract import features, features_generic, norm
+from extract import features, features_generic, norm, register_variants
 
 BASE = ["id", "url", "title", "state", "state_date", "price_first", "price_last", "price_final", "price_changes",
         "reserved_ever", "condition", "is_new", "in_scope", "seller_type", "seller_listings", "dup_n", "city", "region",
@@ -152,6 +152,8 @@ def clean_product(pid, allraw, extractor="moto", scope=None):
 if __name__ == "__main__":
     only = sys.argv[1] if len(sys.argv) > 1 else None
     cfg = {p["id"]: p for p in yaml.safe_load(open(ROOT / "products.yml", encoding="utf-8"))["products"]}
+    for p in cfg.values():
+        register_variants(p.get("variants"))
     raw = ROOT / "data" / "raw"
     allraw = {k: read_all(raw, k) for k in ("search", "details", "status")}
     for pid in sorted({r["product"] for r in allraw["search"]}):
