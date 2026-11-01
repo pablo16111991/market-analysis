@@ -15,4 +15,5 @@ searches:
       # Barrios excluidos (reversible). Nombre tal cual lo da Fotocasa, o 'Municipio/Barrio' si se repite.
       exclude_neighborhoods: [Sant Roc, El Raval]
       min_surface: 50
+      # min_renta_idx: 60   # (desactivado) excluye zonas con renta < 60 % de la media de Barcelona; ver pisos/CLAUDE.md
       subtypes: [INTERMEDIATE_FLOOR, GROUND_FLOOR, PENTHOUSE, DUPLEX_APARTMENT, APARTMENT, LOFT, STUDIO]

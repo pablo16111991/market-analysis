@@ -19,19 +19,17 @@ def rnd(c):
 
 
 def limites():
-    feats, start = [], 0
-    cql = "CUMUN IN (" + ",".join(f"'{m}'" for m in MUN) + ")"
-    while True:
-        q = urllib.parse.urlencode({"f": "json", "limit": 300, "startindex": start, "filter": cql, "filter-lang": "cql-text"})
-        d = curl(f"https://www.ine.es/geoserver/ogc/features/v1/collections/WMS_INE_SECCIONES_G01:Secciones_2024/items?{q}")
-        fs = d["features"]
-        if not fs:
-            break
-        for f in fs:
+    """Una petición por municipio (la paginación del servidor del INE no es fiable con filtros múltiples)."""
+    feats = []
+    for m in MUN:
+        q = urllib.parse.urlencode({"f": "json", "limit": 1500, "filter": f"CUMUN = '{m}' AND TIPO = 'SECCIONADO'", "filter-lang": "cql-text"})
+        d = curl(f"https://www.ine.es/geoserver/ogc/features/v1/collections/WMS_INE_SECCIONES_G01:Secciones_2024/items?{q}", 300)
+        if len(d["features"]) != d.get("numberMatched"):
+            sys.exit(f"{m}: incompleto {len(d['features'])} de {d.get('numberMatched')}")
+        for f in d["features"]:
             g = f["geometry"]
             polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
-            feats.append({"cusec": f["properties"]["CUSEC"], "mun": f["properties"]["CUMUN"], "polys": [rnd(p) for p in polys]})
-        start += len(fs)
+            feats.append({"cusec": f["properties"]["CUSEC"], "mun": m, "polys": [rnd(p) for p in polys]})
     json.dump(feats, open(OUT / "secciones_2024.json", "w"), separators=(",", ":"))
     print("secciones:", len(feats))
 
@@ -45,7 +43,10 @@ def renta():
         n = s["Nombre"]
         if "Dato base" not in n or not s["Data"]:
             continue
-        unit, ind = n.split(". Dato base. ")[0].strip(), n.split(". Dato base. ")[1].strip(" .")
+        parts = n.split(". Dato base. ")
+        if len(parts) < 2:
+            continue
+        unit, ind = parts[0].strip(), parts[1].strip(" .")
         cod = name2cod.get(unit)
         if cod and ind in ("Renta neta media por persona", "Renta neta media por hogar"):
             rows.setdefault(cod, {"anyo": s["Data"][0]["Anyo"]})[ind] = s["Data"][0]["Valor"]

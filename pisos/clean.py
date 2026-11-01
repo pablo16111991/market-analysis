@@ -85,6 +85,8 @@ def in_scope(r, sc):
     ex = {n.lower() for n in sc.get("exclude_neighborhoods", [])}
     if ex and ((r["neighborhood"] or "").lower() in ex or (r["locality"] + "/" + (r["neighborhood"] or "")).lower() in ex):
         return 0
+    if sc.get("min_renta_idx") and (r.get("renta_idx") or 0) < sc["min_renta_idx"]:
+        return 0
     if sc.get("min_nivel_zona") and (r.get("nivel_zona") or 0) < sc["min_nivel_zona"]:
         return 0
     if sc.get("min_surface") and not (num(r["surface"]) or 0) >= sc["min_surface"]:
@@ -166,12 +168,15 @@ def build(sid, scope):
             r["seccion"] = cs
             r["renta_idx_seccion"] = round(100 * rp / base) if rp and base else None
     from statistics import median
-    grp = defaultdict(list)
+    gb, gm = defaultdict(list), defaultdict(list)
     for r in recs:
         if r["renta_idx_seccion"] is not None:
-            grp[(r["locality"], r["neighborhood"] or r["municipality"])].append(r["renta_idx_seccion"])
+            gb[(r["locality"], r["neighborhood"] or r["municipality"])].append(r["renta_idx_seccion"])
+            gm[(r["locality"], r["municipality"])].append(r["renta_idx_seccion"])
     for r in recs:
-        g = grp.get((r["locality"], r["neighborhood"] or r["municipality"]))
+        g = gb.get((r["locality"], r["neighborhood"] or r["municipality"]))
+        if not g or len(g) < 5:  # barrio con pocos pisos: se usa su distrito/zona de Fotocasa
+            g = gm.get((r["locality"], r["municipality"])) or g
         r["renta_idx"] = round(median(g)) if g else None
         r["nivel_zona"] = nivel(r["renta_idx"])
         r["in_scope"] = in_scope(r, scope)
