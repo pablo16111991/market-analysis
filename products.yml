@@ -43,7 +43,7 @@ products:
     max_price: 220    # por encima: pack o incluye más cosas
     extractor: generic   # se envía por correo: toda España, sin radio
     scope:
-      conditions: [as_good_as_new, good]
+      conditions: [new, as_good_as_new, good]   # incluye 'new': a veces lo marcan así sin ser técnicamente nuevo
 
   - id: yamaha-tracer-7
     query: "yamaha tracer 7"

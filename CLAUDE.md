@@ -17,14 +17,14 @@ Objetivo: por cuánto lo ponen a la venta (activos) y por cuánto se vende (vend
 Otros campos: `extractor` (moto|generic) y `variants` (solo motos: `{name, brand, match (regex), cc}`; sin tocar código).
 
 ## Productos actuales
-kymco-k-xct-125 (Barcelona y toda España, mín 1500), triumph-trident-660 (300 km, 4000-7000, scope 2021-2024, 10-25k km, A2), nux-mg-30 (toda España, 120-220, scope estado como nuevo/buen estado), yamaha-tracer-7 (300 km, 4000-9000, scope 2021-2024, 10-25k km, A2).
+kymco-k-xct-125 (Barcelona y toda España, mín 1500), triumph-trident-660 (300 km, 4000-7000, scope 2021-2024, 10-25k km, A2), nux-mg-30 (toda España, 120-220, scope estado nuevo/como nuevo/buen estado), yamaha-tracer-7 (300 km, 4000-9000, scope 2021-2024, 10-25k km, A2).
 
 ## Estados en clean.csv
 activo, reservado, vendido, caducado, borrado (confirmados al reconsultar la página), desaparecido (dejó de salir, sin confirmar) y vendido_probable (estaba reservado la última vez que se vio y desapareció). Para "lo que se paga" cuentan vendido, vendido_probable y reservado. `state` es derivado: cambiar la regla no requiere volver a descargar.
 Columnas clave: in_scope, seller_type (particular/tienda), is_new (parece nuevo), condition (estado declarado en Wallapop), price_last, price_final, state, days_listed, price_changes, dup_n, distance_km, region; en motos year, km, a2, quickshifter, abs, variant. Campo vacío = desconocido, no "no".
 
 ## Cómo se interpreta
-- Percentiles 15/25/50/75/90 sobre `in_scope==1`, `is_new=0`, ponderando 1/dup_n. Las tiendas NO se excluyen: se reportan aparte con `seller_type`.
+- Percentiles 15/25/50/75/90 sobre `in_scope==1`, `is_new=0` (salvo en productos cuyo scope admite estado `new`, p. ej. la NUX: ahí no se excluye por is_new), ponderando 1/dup_n. Las tiendas NO se excluyen: se reportan aparte con `seller_type`.
 - Por separado: lo que piden (activos, `price_last`) y lo que se paga (estados de arriba, `price_final`). Siempre indicar n; con n<10 es orientativo y con n<5 solo la lista.
 - Los vendidos pierden año/km en su página: solo valen los datos capturados mientras estaban activos (details). El precio de un vendido es el último publicado, no el negociado.
 
