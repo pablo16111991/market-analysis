@@ -6,6 +6,8 @@ Estado final de cada anuncio:
   vendido / caducado / borrado   confirmado al reconsultar su página cuando dejó de salir
   reservado / activo             sigue saliendo en la última búsqueda
   desaparecido                   dejó de salir y aún no está confirmado qué pasó
+  vendido_probable               estaba reservado la última vez que se vio y luego desapareció
+Se cuentan como "se paga": vendido, vendido_probable y reservado.
 """
 import csv
 import json
@@ -109,6 +111,8 @@ def clean_product(pid, allraw, extractor="moto", scope=None):
             state, state_date = ("reservado" if last["reserved"] == "1" else "activo"), last["seen_at"][:10]
         else:
             state, state_date = "desaparecido", last["seen_at"][:10]
+        if state in ("borrado", "caducado", "desaparecido") and last["reserved"] == "1":
+            state = "vendido_probable"  # estaba reservado y desapareció
         price_final = num(s["price"]) if state == "vendido" and s and num(s["price"]) else prices[-1]
         end = state_date if state not in ("activo", "reservado") else last["seen_at"][:10]
         try:

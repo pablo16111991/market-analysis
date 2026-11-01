@@ -10,7 +10,7 @@ Analizador de precios de Wallapop de Pablo (sin servicios de pago). Responde en 
 - `.github/workflows/scrape.yml`: Actions diario (collect + clean + commit). Lanzar a mano: `gh api -X POST repos/pablo16111991/wallapop-analysis/actions/workflows/scrape.yml/dispatches -f ref=main`.
 
 ## Estados en clean.csv
-activo, reservado, vendido, caducado, borrado (confirmados al reconsultar la página), desaparecido (dejó de salir, sin confirmar).
+activo, reservado, vendido, caducado, borrado (confirmados al reconsultar la página), desaparecido (dejó de salir, sin confirmar) y vendido_probable (estaba reservado la última vez que se vio y desapareció). Para "lo que se paga" cuentan vendido, vendido_probable y reservado.
 Columnas clave: seller_type (particular/tienda), is_new (parece moto nueva), price_last, price_final, year, km, abs (1/0/vacío=desconocido), flags, dealer, dup_n, days_listed, price_changes, reserved_ever.
 
 ## Ámbito del análisis (scope)
