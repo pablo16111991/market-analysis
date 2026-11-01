@@ -44,3 +44,16 @@ products:
     extractor: generic   # se envía por correo: toda España, sin radio
     scope:
       conditions: [as_good_as_new, good]
+
+  - id: yamaha-tracer-7
+    query: "yamaha tracer 7"
+    category: 14000
+    min_price: 4000    # provisional, filtro de limpieza (ancho para no perder datos)
+    max_price: 9000    # provisional
+    distance_km: 300   # Cataluña y alrededores
+    extractor: moto
+    variants:
+      - {name: "Tracer 7", brand: "Yamaha", match: "tracer\\s*7(?!\\d)", cc: 689}
+    scope:             # provisional: año y km por decidir cuando veamos los datos
+      variant: "Tracer 7"
+      a2: true
