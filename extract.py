@@ -42,6 +42,7 @@ VARIANT_RES = [
     ("K-XCT 125", re.compile(r"k-?\s?xct\s*125|kxct\s*125|k-?\s?xct(?!\s*(?:200|300))")),
     ("K-XCT 200i", re.compile(r"k-?\s?xct\s*200|kxct\s*200")),
     ("K-XCT 300i", re.compile(r"k-?\s?xct\s*300|kxct\s*300")),
+    ("Trident 660", re.compile(r"trident\s*(?:660)?(?!\s*(?:7|1)\d\d)")),
 ]
 
 STOP = {
@@ -63,6 +64,10 @@ FLAG_PATTERNS = {
 }
 FLAG_RES = {k: re.compile(v) for k, v in FLAG_PATTERNS.items()}
 
+A2_POS = re.compile(r"\ba2\b|limitad[ao]|35\s?kw|47[,.]?\d?\s?cv")
+A2_NEG = re.compile(r"sin\s+limit\w+|no\s+(?:est[aá]\s+)?limitad[ao]|full\s+power|libre\s+de\s+limit\w+|potencia\s+completa")
+QS_POS = re.compile(r"quick\s?-?shift\w*|cambio\s+r[aá]pido")
+QS_NEG = re.compile(r"sin\s+quick\s?-?shift\w*")
 ABS_NEG = re.compile(r"\b(sin|no\s+tiene|no\s+lleva|carece\s+de|sin\s+el)\s+abs\b")
 ABS_POS = re.compile(r"\babs\b")
 YEAR_RE = re.compile(r"(?<!\d)(19[89]\d|20[0-2]\d)(?!\d)")
@@ -71,9 +76,9 @@ KM_RE = re.compile(r"(?<![\d.,])(\d{1,3}(?:[.,]\d{3})+|\d{3,6})\s?(?:km|kms|kil[
 KM_BAD_CTX = re.compile(r"(cada|revis\w*|aceite|correa|hasta|cambio|menos de|autonom[ií]a|velocidad)\s*(de\s*)?$")
 CC_RE = re.compile(r"(?<!\d)(\d{2,4})\s?cc\b")
 MODEL_NUM_RE = re.compile(r"(?<!\d)(\d{2,4})(?!\d)")
-CC_VALID = {50, 70, 80, 100, 110, 125, 150, 160, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700,
+CC_VALID = {50, 70, 80, 100, 110, 125, 150, 160, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 660, 700,
             750, 800, 900, 1000, 1100, 1200, 1250}
-VARIANT_CC = {"K-XCT 125": 125, "K-XCT 125i": 125, "K-XCT 200i": 200, "K-XCT 300i": 300}
+VARIANT_CC = {"K-XCT 125": 125, "K-XCT 125i": 125, "K-XCT 200i": 200, "K-XCT 300i": 300, "Trident 660": 660}
 
 
 def find_cc(variant, model, title, desc):
@@ -199,7 +204,7 @@ def features(row):
         out["model"], out["model_src"] = (g, "titulo (estimado)") if g else (None, None)
 
     # La descripción no vale: los concesionarios meten "Kymco K-XCT 125" para colarse en búsquedas.
-    out["variant"] = find_variant(f"{m or ''} {title}") if out["brand"] in (None, "Kymco") else None
+    out["variant"] = find_variant(f"{m or ''} {title}") if out["brand"] in (None, "Kymco", "Triumph") else None
     out["cc"], out["cc_src"] = find_cc(out["variant"], out["model"], title, desc)
 
     y = attrs.get("year")
@@ -215,6 +220,9 @@ def features(row):
         out["km"], out["km_src"] = find_km(title, desc)
 
     out["abs"] = find_abs(title, desc)
+    tl = norm(text)
+    out["a2"] = 0 if A2_NEG.search(tl) else (1 if A2_POS.search(tl) else None)  # 1 = limitada/apta A2, 0 = libre
+    out["quickshifter"] = 0 if QS_NEG.search(tl) else (1 if QS_POS.search(tl) else None)
     t = norm(text)
     tt = norm(title)  # "nueva" solo cuenta en el título ("ruedas nuevas" no es una moto nueva)
     flags = [k for k, rx in FLAG_RES.items() if rx.search(tt if k == "posible_nueva" else t)]

@@ -6,8 +6,15 @@
 # max_price  -> opcional
 # max_pages  -> páginas máximas a recorrer (por defecto 12)
 # lat/lon    -> centro de búsqueda (por defecto Barcelona)
+# distance_km-> radio de búsqueda desde lat/lon (opcional; sin él, toda España)
 products:
   - id: kymco-k-xct-125
     query: "kymco k xct 125"
     category: 14000
     min_price: 1500
+
+  - id: triumph-trident-660
+    query: "triumph trident 660"
+    category: 14000
+    min_price: 4000
+    distance_km: 300   # Cataluña y alrededores

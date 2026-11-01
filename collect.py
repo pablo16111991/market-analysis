@@ -31,7 +31,7 @@ HEADERS = {
                   "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
 }
 SEARCH_COLS = ["run_id", "product", "seen_at", "id", "user_id", "title", "description", "price", "currency",
-               "reserved", "category_id", "city", "region", "postal_code", "shippable", "created_at",
+               "reserved", "category_id", "city", "region", "postal_code", "latitude", "longitude", "shippable", "created_at",
                "modified_at", "web_slug"]
 DETAIL_COLS = ["run_id", "product", "fetched_at", "id", "condition", "views", "favorites", "conversations",
                "brand", "model", "year", "km", "attrs_json"]
@@ -99,6 +99,8 @@ def search(client, p, run_id, now):
         params["min_sale_price"] = p["min_price"]
     if p.get("max_price"):
         params["max_sale_price"] = p["max_price"]
+    if p.get("distance_km"):
+        params["distance_in_km"] = p["distance_km"]
     rows, seen, empty = [], set(), 0
     for page in range(1, int(p.get("max_pages", 12)) + 1):
         r = client.get(API, params=params)
@@ -118,6 +120,7 @@ def search(client, p, run_id, now):
                 "currency": price.get("currency"), "reserved": int(bool((it.get("reserved") or {}).get("flag"))),
                 "category_id": it.get("category_id"), "city": loc.get("city"), "region": loc.get("region"),
                 "postal_code": loc.get("postal_code"),
+                "latitude": loc.get("latitude"), "longitude": loc.get("longitude"),
                 "shippable": int(bool((it.get("shipping") or {}).get("item_is_shippable"))),
                 "created_at": ms_to_iso(it.get("created_at")), "modified_at": ms_to_iso(it.get("modified_at")),
                 "web_slug": it.get("web_slug"),

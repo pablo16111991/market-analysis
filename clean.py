@@ -18,9 +18,21 @@ from collect import ROOT, read_all
 from extract import features, norm
 
 COLS = ["id", "url", "title", "state", "state_date", "price_first", "price_last", "price_final", "price_changes",
-        "reserved_ever", "brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "flags",
-        "dealer", "seller_listings", "dup_n", "city", "created_at", "first_seen", "last_seen", "days_listed",
+        "reserved_ever", "brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter",
+        "flags", "dealer", "seller_listings", "dup_n", "city", "region", "distance_km", "created_at", "first_seen", "last_seen", "days_listed",
         "runs_seen", "views", "favorites", "desc_start"]
+
+
+def dist(r):
+    """Km en línea recta desde Barcelona (Plaça Catalunya), si el anuncio trae coordenadas."""
+    from math import asin, cos, radians, sin, sqrt
+    try:
+        la, lo = float(r["latitude"]), float(r["longitude"])
+    except (KeyError, TypeError, ValueError):
+        return ""
+    la0, lo0 = radians(41.3868), radians(2.1700)
+    a = sin((radians(la) - la0) / 2) ** 2 + cos(la0) * cos(radians(la)) * sin((radians(lo) - lo0) / 2) ** 2
+    return round(2 * 6371 * asin(sqrt(a)))
 
 
 def num(x):
@@ -75,9 +87,9 @@ def clean_product(pid, allraw):
             "state": state, "state_date": state_date, "price_first": prices[0], "price_last": prices[-1],
             "price_final": price_final, "price_changes": changes,
             "reserved_ever": int(any(r["reserved"] == "1" for r in rows)),
-            **{k: f[k] for k in ("brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "flags")},
+            **{k: f[k] for k in ("brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter", "flags")},
             "dealer": int("posible_nueva" in f["flags"]), "seller_listings": per_seller[last["user_id"]],
-            "city": last["city"], "created_at": last["created_at"][:10], "first_seen": first["seen_at"][:10],
+            "city": last["city"], "region": last.get("region"), "distance_km": dist(last), "created_at": last["created_at"][:10], "first_seen": first["seen_at"][:10],
             "last_seen": last["seen_at"][:10], "days_listed": days, "runs_seen": len(rows),
             "views": (s or {}).get("views") or (d or {}).get("views"),
             "favorites": (s or {}).get("favorites") or (d or {}).get("favorites"),
