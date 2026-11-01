@@ -19,7 +19,7 @@ from extract import features, norm
 
 COLS = ["id", "url", "title", "state", "state_date", "price_first", "price_last", "price_final", "price_changes",
         "reserved_ever", "brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter",
-        "flags", "dealer", "seller_listings", "dup_n", "city", "region", "distance_km", "created_at", "first_seen", "last_seen", "days_listed",
+        "flags", "is_new", "seller_type", "seller_listings", "dup_n", "city", "region", "distance_km", "created_at", "first_seen", "last_seen", "days_listed",
         "runs_seen", "views", "favorites", "desc_start"]
 
 
@@ -88,7 +88,9 @@ def clean_product(pid, allraw):
             "price_final": price_final, "price_changes": changes,
             "reserved_ever": int(any(r["reserved"] == "1" for r in rows)),
             **{k: f[k] for k in ("brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter", "flags")},
-            "dealer": int("posible_nueva" in f["flags"]), "seller_listings": per_seller[last["user_id"]],
+            "is_new": int("posible_nueva" in f["flags"]),
+            "seller_type": "tienda" if f["shop_signals"] >= 1 or per_seller[last["user_id"]] >= 3 else "particular",
+            "seller_listings": per_seller[last["user_id"]],
             "city": last["city"], "region": last.get("region"), "distance_km": dist(last), "created_at": last["created_at"][:10], "first_seen": first["seen_at"][:10],
             "last_seen": last["seen_at"][:10], "days_listed": days, "runs_seen": len(rows),
             "views": (s or {}).get("views") or (d or {}).get("views"),

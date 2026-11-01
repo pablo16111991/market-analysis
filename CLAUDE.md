@@ -11,7 +11,7 @@ Analizador de precios de Wallapop de Pablo (sin servicios de pago). Responde en 
 
 ## Estados en clean.csv
 activo, reservado, vendido, caducado, borrado (confirmados al reconsultar la página), desaparecido (dejó de salir, sin confirmar).
-Columnas clave: price_last, price_final, year, km, abs (1/0/vacío=desconocido), flags, dealer, dup_n, days_listed, price_changes, reserved_ever.
+Columnas clave: seller_type (particular/tienda), is_new (parece moto nueva), price_last, price_final, year, km, abs (1/0/vacío=desconocido), flags, dealer, dup_n, days_listed, price_changes, reserved_ever.
 
 ## Reglas
 - Lo crudo no se edita ni se borra; todo lo derivado se rehace con clean.py.

@@ -68,6 +68,10 @@ A2_POS = re.compile(r"\ba2\b|limitad[ao]|35\s?kw|47[,.]?\d?\s?cv")
 A2_NEG = re.compile(r"sin\s+limit\w+|no\s+(?:est[aá]\s+)?limitad[ao]|full\s+power|libre\s+de\s+limit\w+|potencia\s+completa")
 QS_POS = re.compile(r"quick\s?-?shift\w*|cambio\s+r[aá]pido")
 QS_NEG = re.compile(r"sin\s+quick\s?-?shift\w*")
+# Señales de que vende una tienda/concesionario y no un particular
+SHOP_RE = re.compile(r"financiaci[oó]n|parte de pago|nuestras tiendas|empresa\b|c[uü]imo|motick|maquina motors|"
+                     r"env[ií]o\s+(?:gratuito\s+|gratis\s+|a domicilio\s+)?a\s+toda\s+(?:la\s+pen[ií]nsula|espa[ñn]a)|"
+                     r"moto\s+ocasi[oó]n|iva\s+(?:incluido|deducible)|aceptamos\s+tu\s+moto|carece de valor contractual")
 ABS_NEG = re.compile(r"\b(sin|no\s+tiene|no\s+lleva|carece\s+de|sin\s+el)\s+abs\b")
 ABS_POS = re.compile(r"\babs\b")
 YEAR_RE = re.compile(r"(?<!\d)(19[89]\d|20[0-2]\d)(?!\d)")
@@ -229,5 +233,6 @@ def features(row):
     tcc = CC_RE.search(tt)
     if tcc and out["cc"] and int(tcc.group(1)) in CC_VALID and int(tcc.group(1)) != out["cc"]:
         flags.append("cc_discrepancia")  # el título dice otro cc que el modelo
+    out["shop_signals"] = len(SHOP_RE.findall(t))
     out["flags"] = ",".join(flags)
     return out
