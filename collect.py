@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Descarga CRUDA de Wallapop. Solo añade ficheros; nunca modifica lo anterior.
 
-Por cada producto de products.yml y cada ejecución (run_id) escribe en data/<producto>/raw/:
+Cada ejecución (run_id) escribe en data/raw/ (todos los productos juntos, columna `product`):
   <run_id>_search.csv   anuncios vistos en la búsqueda (precio, reservado, título, descripción…)
   <run_id>_details.csv  atributos estructurados (año, km, marca…) de anuncios nuevos, mientras están activos
   <run_id>_status.csv   estado de anuncios que ya no salen en búsqueda (vendido/caducado/borrado/activo)
@@ -172,26 +172,22 @@ def check_status(client, product, run_id, items):
     return rows
 
 
-def run_product(client, p, run_id, limit):
-    raw = ROOT / "data" / p["id"] / "raw"
+def run_product(client, p, run_id, limit, prev):
+    """Devuelve (search_rows, detail_rows, status_rows) de este producto."""
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    prev_search = read_all(raw, "search")
-    prev_status = read_all(raw, "status")
-    prev_details = read_all(raw, "details")
+    mine = lambda rows: [r for r in rows if r["product"] == p["id"]]
+    prev_search, prev_status, prev_details = (mine(prev[k]) for k in ("search", "status", "details"))
 
     rows = search(client, p, run_id, now)
     print(f"[{p['id']}] búsqueda: {len(rows)} anuncios")
     if not rows:
         sys.exit(f"[{p['id']}] búsqueda vacía: no se guarda nada (posible bloqueo)")
-    write_csv(raw / f"{run_id}_search.csv", SEARCH_COLS, rows)
     today = {r["id"] for r in rows}
 
     # Detalles (año, km…) de los anuncios que aún no tienen, mientras están activos
     have = {r["id"] for r in prev_details}
     new_ids = [r["id"] for r in rows if r["id"] not in have][:limit]
     det = fetch_details(client, p["id"], run_id, new_ids)
-    if det:
-        write_csv(raw / f"{run_id}_details.csv", DETAIL_COLS, det)
     print(f"[{p['id']}] detalles nuevos: {len(det)}")
 
     # Anuncios vistos antes que hoy no aparecen y aún no tienen estado final -> comprobar su página
@@ -199,12 +195,11 @@ def run_product(client, p, run_id, limit):
     slugs = {r["id"]: r["web_slug"] for r in prev_search}
     todo = [(i, slugs[i]) for i in slugs if i not in today and i not in final][:limit]
     st = check_status(client, p["id"], run_id, todo)
-    if st:
-        write_csv(raw / f"{run_id}_status.csv", STATUS_COLS, st)
     kinds = {"vendido": 0, "caducado": 0, "borrado": 0, "activo": 0}
     for s in st:
         kinds["borrado" if s["http_status"] == 404 else "vendido" if s.get("sold") else "caducado" if s.get("expired") else "activo"] += 1
     print(f"[{p['id']}] desaparecidos comprobados: {len(st)} {kinds}")
+    return rows, det, st
 
 
 def main():
@@ -214,11 +209,18 @@ def main():
     ap.add_argument("--limit", type=int, default=150, help="máx. detalles y comprobaciones por producto y ejecución")
     a = ap.parse_args()
     prods = yaml.safe_load(open(ROOT / "products.yml", encoding="utf-8"))["products"]
+    raw = ROOT / "data" / "raw"
+    prev = {k: read_all(raw, k) for k in ("search", "details", "status")}
+    out = {"search": [], "details": [], "status": []}
     with httpx.Client(headers=HEADERS, timeout=20, http2=False) as client:
         for p in prods:
             if a.only and p["id"] != a.only:
                 continue
-            run_product(client, p, a.run_id, a.limit)
+            for k, rows in zip(("search", "details", "status"), run_product(client, p, a.run_id, a.limit, prev)):
+                out[k].extend(rows)
+    for k, cols in (("search", SEARCH_COLS), ("details", DETAIL_COLS), ("status", STATUS_COLS)):
+        if out[k]:
+            write_csv(raw / f"{a.run_id}_{k}.csv", cols, out[k])
 
 
 if __name__ == "__main__":

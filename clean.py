@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Limpieza: lee TODO lo crudo de data/<producto>/raw/ y genera data/<producto>/clean.csv
-(una fila por anuncio con su último estado). Se puede rehacer siempre desde lo crudo.
+"""Limpieza: lee TODO lo crudo de data/raw/ y genera, por producto,
+en data/clean/<producto>.csv (una fila por anuncio con su último estado). Se puede rehacer siempre desde lo crudo.
 
 Estado final de cada anuncio:
   vendido / caducado / borrado   confirmado al reconsultar su página cuando dejó de salir
@@ -30,9 +30,8 @@ def num(x):
         return None
 
 
-def clean_product(pdir):
-    raw = pdir / "raw"
-    search, details, status = read_all(raw, "search"), read_all(raw, "details"), read_all(raw, "status")
+def clean_product(pid, allraw):
+    search, details, status = ([r for r in allraw[k] if r["product"] == pid] for k in ("search", "details", "status"))
     if not search:
         return 0
     last_run = max(r["run_id"] for r in search)
@@ -90,16 +89,20 @@ def clean_product(pdir):
     for r in recs:
         r["dup_n"] = dups[key(r)]
     recs.sort(key=lambda r: (r["state"], r["price_last"] or 0))
-    with open(pdir / "clean.csv", "w", newline="", encoding="utf-8-sig") as fh:
+    out = ROOT / "data" / "clean"
+    out.mkdir(parents=True, exist_ok=True)
+    with open(out / f"{pid}.csv", "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.DictWriter(fh, fieldnames=COLS)
         w.writeheader()
         w.writerows(recs)
-    print(f"[{pdir.name}] {len(recs)} anuncios: {dict(Counter(r['state'] for r in recs))}")
+    print(f"[{pid}] {len(recs)} anuncios: {dict(Counter(r['state'] for r in recs))}")
     return len(recs)
 
 
 if __name__ == "__main__":
     only = sys.argv[1] if len(sys.argv) > 1 else None
-    for pdir in sorted((ROOT / "data").glob("*/")):
-        if pdir.is_dir() and (not only or pdir.name == only):
-            clean_product(pdir)
+    raw = ROOT / "data" / "raw"
+    allraw = {k: read_all(raw, k) for k in ("search", "details", "status")}
+    for pid in sorted({r["product"] for r in allraw["search"]}):
+        if not only or pid == only:
+            clean_product(pid, allraw)

@@ -4,8 +4,8 @@ Analizador de precios de Wallapop de Pablo (sin servicios de pago). Responde en 
 
 ## Estructura
 - `products.yml`: productos a seguir (id, query, category, min_price, max_price, max_pages, lat/lon).
-- `collect.py`: descarga CRUDA diaria (solo añade ficheros) en `data/<id>/raw/<run_id>_{search,details,status}.csv`.
-- `clean.py`: reconstruye `data/<id>/clean.csv` (1 fila por anuncio, último estado) desde lo crudo.
+- `collect.py`: descarga CRUDA diaria (solo añade ficheros) en `data/raw/<run_id>_{search,details,status}.csv` (todos los productos juntos, columna `product`).
+- `clean.py`: reconstruye `data/clean/<id>.csv` (1 fila por anuncio, último estado) desde lo crudo.
 - `extract.py`: reglas para marca, modelo, variante, cc, año, km, ABS y flags. `VARIANT_RES` y `VARIANT_CC` están ajustados a Kymco K-XCT: para otro modelo hay que añadir sus variantes.
 - `.github/workflows/scrape.yml`: Actions diario (collect + clean + commit). Lanzar a mano: `gh api -X POST repos/pablo16111991/wallapop-analysis/actions/workflows/scrape.yml/dispatches -f ref=main`.
 
