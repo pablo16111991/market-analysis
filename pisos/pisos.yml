@@ -1,7 +1,7 @@
 # Búsquedas de pisos en Fotocasa (solo compra). Un bloque por búsqueda; para añadir una, copia un bloque.
 # Descarga (irreversible, lo aplica Fotocasa): zones, min_price, max_price, min_rooms.
 # scope (reversible, solo marca in_scope en clean.py): subtypes (INTERMEDIATE_FLOOR, GROUND_FLOOR, PENTHOUSE,
-#   DUPLEX_APARTMENT, APARTMENT, LOFT, STUDIO, HOUSE_CHALET...), min_surface (m2), exterior (true).
+#   DUPLEX_APARTMENT, APARTMENT, LOFT, STUDIO, HOUSE_CHALET...), min_surface (m2), exclude_neighborhoods (lista de barrios), exterior (true).
 # Siempre fuera de ámbito: ocupado/okupa, nuda propiedad/usufructo y subasta (bandera o texto) y duplicados (queda 1 por grupo).
 # Los alquilados con inquilinos entran (columna rented).
 # zones = slugs de Fotocasa (.../viviendas/<slug>/todas-las-zonas/l)
@@ -12,5 +12,7 @@ searches:
     max_price: 300000
     min_rooms: 2
     scope:
+      # Barrios excluidos (reversible). Nombre tal cual lo da Fotocasa, o 'Municipio/Barrio' si se repite.
+      exclude_neighborhoods: [Sant Roc, El Raval]
       min_surface: 50
       subtypes: [INTERMEDIATE_FLOOR, GROUND_FLOOR, PENTHOUSE, DUPLEX_APARTMENT, APARTMENT, LOFT, STUDIO]

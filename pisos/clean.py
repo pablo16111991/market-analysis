@@ -41,6 +41,9 @@ def in_scope(r, sc):
     if r["occupied"] == "1" or r["bare_ownership"] == "1" or r["auctioned"] == "1" or r["okupa_txt"] or r["nuda_txt"]:
         return 0
     sc = sc or {}
+    ex = {n.lower() for n in sc.get("exclude_neighborhoods", [])}
+    if ex and ((r["neighborhood"] or "").lower() in ex or (r["locality"] + "/" + (r["neighborhood"] or "")).lower() in ex):
+        return 0
     if sc.get("min_surface") and not (num(r["surface"]) or 0) >= sc["min_surface"]:
         return 0
     if sc.get("subtypes") and r["subtype"] not in sc["subtypes"]:

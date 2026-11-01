@@ -11,7 +11,7 @@ Pisos en venta de Fotocasa. Rutas relativas a `pisos/` (datos en `pisos/data/`).
 activo, retirado (la ficha ya no existe: vendido o retirado por el dueño, Fotocasa no distingue), fuera_de_filtro (sigue publicado con otro precio fuera del filtro), desaparecido (dejó de salir, sin comprobar aún).
 
 ## Ámbito (in_scope)
-Siempre fuera: ocupado/okupa (bandera de Fotocasa o texto), nuda propiedad/usufructo (bandera o texto), subasta, y duplicados (de cada grupo se queda el de id más bajo). Alquilados con inquilinos SÍ entran (columna `rented`). Del yml: `min_surface` (50 m²), `subtypes`.
+Siempre fuera: ocupado/okupa (bandera de Fotocasa o texto), nuda propiedad/usufructo (bandera o texto), subasta, y duplicados (de cada grupo se queda el de id más bajo). Alquilados con inquilinos SÍ entran (columna `rented`). Del yml: `min_surface` (50 m²), `subtypes`, `exclude_neighborhoods` (barrios que Pablo descarta; ahora Sant Roc y El Raval).
 Columnas de aviso sin excluir: `a_reformar`, `rented`, `drop_pct`, `days_listed`, `eur_m2`.
 `antiquity`, `conservation`, `orientation` son códigos numéricos de Fotocasa, aún sin traducir.
 
