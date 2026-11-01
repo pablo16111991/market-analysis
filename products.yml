@@ -25,6 +25,7 @@ products:
     category: 14000
     min_price: 1500
     extractor: moto
+    comparables: [kymco-super-dink-125]
 
   - id: triumph-trident-660
     query: "triumph trident 660"
@@ -62,3 +63,13 @@ products:
       year: [2020, 2024]
       km: [10000, 25000]
       a2: true
+
+  - id: kymco-super-dink-125
+    query: "kymco super dink 125"
+    category: 14000
+    min_price: 1500    # igual que la K-XCT, para poder compararlas
+    extractor: moto
+    variants:
+      - {name: "Super Dink 125", brand: "Kymco", match: "super[\\s-]?dink(?!\\s*[23]\\d\\d)", cc: 125}
+    scope:
+      variant: "Super Dink 125"
