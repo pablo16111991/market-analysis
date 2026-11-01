@@ -16,5 +16,6 @@ products:
   - id: triumph-trident-660
     query: "triumph trident 660"
     category: 14000
-    min_price: 4000
+    min_price: 4000   # por debajo: estafa o moto destrozada (filtro de limpieza, no presupuesto)
+    max_price: 7000   # por encima: casi nueva (filtro de limpieza)
     distance_km: 300   # Cataluña y alrededores
