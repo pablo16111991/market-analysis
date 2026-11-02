@@ -32,3 +32,7 @@ Columnas clave: in_scope, seller_type (particular/tienda), is_new (parece nuevo)
 - Lo crudo no se edita ni se borra (salvo petición explícita de Pablo para regenerar); todo lo derivado se rehace con clean.py.
 - Wallapop: categoría motos = 14000; instrumentos musicales = 12463.
 - Si cambias extract.py o clean.py, ejecuta `python3 second-hand/clean.py` (desde la raíz del repo) y revisa el CSV antes de subir.
+
+## Contadores diarios (counters)
+Cada ejecución escribe `data/raw/<run>_counters.csv`: foto de visitas, favoritos, conversaciones, precio y reservado de los anuncios activos en ámbito (según el último clean; los nuevos traen los suyos de details). Solo se añade. En clean: `views_last`, `favorites_last`, `fav_por_visita_last`, `conversations_last`, `counters_n`, `views_por_dia`. Las columnas `views`/`favorites`/`fav_por_visita` siguen siendo la foto de la primera vez que se vio. La curva empieza el día que se activó (2026-11-02).
+

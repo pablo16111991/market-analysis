@@ -5,6 +5,7 @@ Cada ejecución (run_id) escribe en data/raw/ (todos los productos juntos, colum
   <run_id>_search.csv   anuncios vistos en la búsqueda (precio, reservado, título, descripción…)
   <run_id>_details.csv  atributos estructurados (año, km, marca…) de anuncios nuevos, mientras están activos
   <run_id>_status.csv   estado de anuncios que ya no salen en búsqueda (vendido/caducado/borrado/activo)
+  <run_id>_counters.csv foto diaria de visitas/favoritos/conversaciones/precio/reservado de los activos en ámbito
 
 Uso: python collect.py [--only ID] [--run-id X] [--limit 150]
 """
@@ -35,6 +36,7 @@ SEARCH_COLS = ["run_id", "product", "seen_at", "id", "user_id", "title", "descri
                "modified_at", "web_slug"]
 DETAIL_COLS = ["run_id", "product", "fetched_at", "id", "condition", "views", "favorites", "conversations",
                "brand", "model", "year", "km", "attrs_json"]
+COUNTER_COLS = ["run_id", "product", "fetched_at", "id", "views", "favorites", "conversations", "price", "reserved"]
 STATUS_COLS = ["run_id", "product", "checked_at", "id", "http_status", "sold", "expired", "reserved", "price",
                "condition", "views", "favorites", "modified_at", "final"]
 
@@ -153,6 +155,36 @@ def fetch_details(client, product, run_id, ids):
     return rows
 
 
+def scope_ids(product):
+    """Ids en ámbito y activos según el último clean (si no existe aún, vacío)."""
+    p = ROOT / "data" / "clean" / f"{product}.csv"
+    if not p.exists():
+        return set()
+    with open(p, newline="", encoding="utf-8-sig") as fh:
+        return {r["id"] for r in csv.DictReader(fh) if r.get("in_scope") == "1"}
+
+
+def fetch_counters(client, product, run_id, ids):
+    """Foto diaria de visitas/favoritos/conversaciones/precio/reservado (solo se añade)."""
+    rows = []
+    for iid in ids:
+        try:
+            r = client.get(f"https://api.wallapop.com/api/v3/items/{iid}")
+            if r.status_code != 200:
+                continue
+            j = r.json()
+        except (httpx.HTTPError, ValueError):
+            continue
+        c = j.get("counters") or {}
+        price = ((j.get("price") or {}).get("cash") or {}).get("amount")
+        rows.append({"run_id": run_id, "product": product, "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                     "id": iid, "views": c.get("views"), "favorites": c.get("favorites"),
+                     "conversations": c.get("conversations"), "price": price,
+                     "reserved": int(bool((j.get("reserved") or {}).get("flag")))})
+        time.sleep(random.uniform(1.0, 2.0))
+    return rows
+
+
 def check_status(client, product, run_id, items):
     rows = []
     for iid, slug in items:
@@ -176,7 +208,7 @@ def check_status(client, product, run_id, items):
 
 
 def run_product(client, p, run_id, limit, prev):
-    """Devuelve (search_rows, detail_rows, status_rows) de este producto."""
+    """Devuelve (search_rows, detail_rows, status_rows, counter_rows) de este producto."""
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     mine = lambda rows: [r for r in rows if r["product"] == p["id"]]
     prev_search, prev_status, prev_details = (mine(prev[k]) for k in ("search", "status", "details"))
@@ -193,6 +225,14 @@ def run_product(client, p, run_id, limit, prev):
     det = fetch_details(client, p["id"], run_id, new_ids)
     print(f"[{p['id']}] detalles nuevos: {len(det)}")
 
+    # Foto diaria de contadores: anuncios activos en ámbito (los nuevos ya traen sus contadores en det)
+    newc = {d["id"]: d for d in det}
+    cnt = [{"run_id": run_id, "product": p["id"], "fetched_at": d["fetched_at"], "id": d["id"], "views": d["views"],
+            "favorites": d["favorites"], "conversations": d["conversations"], "price": "", "reserved": ""} for d in det]
+    pend = [i for i in sorted(scope_ids(p["id"]) & today) if i not in newc]
+    cnt += fetch_counters(client, p["id"], run_id, pend)
+    print(f"[{p['id']}] contadores: {len(cnt)}")
+
     # Anuncios vistos antes que hoy no aparecen y aún no tienen estado final -> comprobar su página
     final = {r["id"] for r in prev_status if r.get("final") == "1"}
     slugs = {r["id"]: r["web_slug"] for r in prev_search}
@@ -202,7 +242,7 @@ def run_product(client, p, run_id, limit, prev):
     for s in st:
         kinds["borrado" if s["http_status"] == 404 else "vendido" if s.get("sold") else "caducado" if s.get("expired") else "activo"] += 1
     print(f"[{p['id']}] desaparecidos comprobados: {len(st)} {kinds}")
-    return rows, det, st
+    return rows, det, st, cnt
 
 
 def main():
@@ -214,14 +254,14 @@ def main():
     prods = yaml.safe_load(open(ROOT / "products.yml", encoding="utf-8"))["products"]
     raw = ROOT / "data" / "raw"
     prev = {k: read_all(raw, k) for k in ("search", "details", "status")}
-    out = {"search": [], "details": [], "status": []}
+    out = {"search": [], "details": [], "status": [], "counters": []}
     with httpx.Client(headers=HEADERS, timeout=20, http2=False) as client:
         for p in prods:
             if a.only and p["id"] != a.only:
                 continue
-            for k, rows in zip(("search", "details", "status"), run_product(client, p, a.run_id, a.limit, prev)):
+            for k, rows in zip(("search", "details", "status", "counters"), run_product(client, p, a.run_id, a.limit, prev)):
                 out[k].extend(rows)
-    for k, cols in (("search", SEARCH_COLS), ("details", DETAIL_COLS), ("status", STATUS_COLS)):
+    for k, cols in (("search", SEARCH_COLS), ("details", DETAIL_COLS), ("status", STATUS_COLS), ("counters", COUNTER_COLS)):
         if out[k]:
             write_csv(raw / f"{a.run_id}_{k}.csv", cols, out[k])
 

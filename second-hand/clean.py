@@ -24,6 +24,7 @@ BASE = ["id", "url", "title", "state", "state_date", "price_first", "price_last"
         "reserved_ever", "condition", "is_new", "in_scope", "seller_type", "seller_listings", "dup_n", "city", "region",
         "distance_km", "created_at", "first_seen", "last_seen", "days_listed", "runs_seen", "views", "favorites",
         "fav_por_visita", "desc_start"]
+COUNTERS = ["views_last", "favorites_last", "fav_por_visita_last", "conversations_last", "counters_n", "views_por_dia"]
 EXTRA = {
     "moto": ["brand", "model", "variant", "cc", "year", "year_src", "km", "km_src", "abs", "a2", "quickshifter", "flags"],
     "generic": ["brand", "model", "flags"],
@@ -81,6 +82,9 @@ def in_scope(r, sc):
 
 def clean_product(pid, allraw, extractor="moto", scope=None):
     search, details, status = ([r for r in allraw[k] if r["product"] == pid] for k in ("search", "details", "status"))
+    cnt = defaultdict(list)  # foto diaria de contadores (counters), última = más reciente
+    for c in sorted((r for r in allraw.get("counters", []) if r["product"] == pid), key=lambda r: r["fetched_at"]):
+        cnt[c["id"]].append(c)
     if not search:
         return 0
     last_run = max(r["run_id"] for r in search)
@@ -149,11 +153,22 @@ def clean_product(pid, allraw, extractor="moto", scope=None):
             r["fav_por_visita"] = round(f / v, 4) if v >= 1 else None
         except (TypeError, ValueError):
             r["fav_por_visita"] = None
+    for r in recs:
+        cs = cnt.get(r["id"], [])
+        last = cs[-1] if cs else {}
+        r["views_last"], r["favorites_last"] = last.get("views") or None, last.get("favorites") or None
+        r["conversations_last"], r["counters_n"] = last.get("conversations") or None, len(cs) or None
+        try:
+            v, f = float(r["views_last"]), float(r["favorites_last"] or 0)
+            r["fav_por_visita_last"] = round(f / v, 4) if v >= 1 else None
+            r["views_por_dia"] = round(v / max(int(r["days_listed"]), 1), 1)
+        except (TypeError, ValueError):
+            r["fav_por_visita_last"] = r["views_por_dia"] = None
     recs.sort(key=lambda r: (r["state"], r["price_last"] or 0))
     out = ROOT / "data" / "clean"
     out.mkdir(parents=True, exist_ok=True)
     with open(out / f"{pid}.csv", "w", newline="", encoding="utf-8-sig") as fh:
-        w = csv.DictWriter(fh, fieldnames=BASE + EXTRA[extractor])
+        w = csv.DictWriter(fh, fieldnames=BASE + EXTRA[extractor] + COUNTERS)
         w.writeheader()
         w.writerows(recs)
     print(f"[{pid}] {len(recs)} anuncios ({sum(r['in_scope'] for r in recs)} en ámbito): {dict(Counter(r['state'] for r in recs))}")
@@ -166,7 +181,7 @@ if __name__ == "__main__":
     for p in cfg.values():
         register_variants(p.get("variants"))
     raw = ROOT / "data" / "raw"
-    allraw = {k: read_all(raw, k) for k in ("search", "details", "status")}
+    allraw = {k: read_all(raw, k) for k in ("search", "details", "status", "counters")}
     for pid in sorted({r["product"] for r in allraw["search"]}):
         if not only or pid == only:
             p = cfg.get(pid, {})
