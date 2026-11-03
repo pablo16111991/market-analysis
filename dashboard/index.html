@@ -117,6 +117,17 @@ details{background:var(--card);border-radius:10px;padding:10px 12px;margin-botto
   </div>
   <div class="scroll"><table id="p-tab"></table></div>
  </div>
+<div class="card" style="margin-top:12px">
+  <h2 style="font-size:16px;color:var(--tx)">💶 ¿Es buen precio este piso? (comparado con pisos parecidos)</h2>
+  <div class="q">
+   <div><label>Barrio</label><select id="c-bar"></select></div>
+   <div><label>m²</label><input id="c-m2" type="number" inputmode="numeric" placeholder="ej. 70"></div>
+   <div><label>Precio que piden (€)</label><input id="c-price" class="big" type="number" inputmode="numeric" placeholder="ej. 235000"></div>
+   <div><label>Habitaciones (opcional)</label><input id="c-rooms" type="number" inputmode="numeric" placeholder="ej. 3"></div>
+  </div>
+  <div class="ctl" style="margin-top:10px" id="c-ex"></div>
+  <div id="c-out"></div>
+ </div>
 </section>
 <section id="sh" class="hide">
  <h2 style="font-size:18px;color:var(--tx)">¿Es buen precio?</h2>
@@ -179,7 +190,7 @@ fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(D=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
   ['pisos','sh'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
   if(b.dataset.t==='pisos'&&window.map)setTimeout(()=>map.invalidateSize(),50);});
- for(const f of [()=>initVal(D.pisos),()=>initPisos(D.pisos),()=>initSH(D.sh)]){try{f()}catch(e){console.error(e);$('#gen').textContent+=' | error: '+e.message}}
+ for(const f of [()=>initVal(D.pisos),()=>initPisos(D.pisos),()=>initComp(D.pisos),()=>initSH(D.sh)]){try{f()}catch(e){console.error(e);$('#gen').textContent+=' | error: '+e.message}}
 }).catch(e=>{$('#gen').textContent='Error cargando datos: '+e.message});
 
 function trend(all,dates,hist,ids){
@@ -230,6 +241,47 @@ function initVal(P){
  }
  document.querySelectorAll('#pisos .q select, #pisos .q input, #v-ex input').forEach(e=>{if(e.id&&e.id.startsWith('v-')||e.closest('#v-ex')){e.onchange=calc;e.oninput=calc;}});
  calc();
+}
+function initComp(P){
+ const seen={};P.rows.forEach(r=>{const k=(r.barrio||'')+'|'+r.mun;seen[k]=(r.barrio||'(sin barrio)')+' · '+r.mun;});
+ const keys=Object.keys(seen).sort((a,b)=>seen[a].localeCompare(seen[b]));
+ $('#c-bar').innerHTML=keys.map(k=>`<option value="${k}">${seen[k]}</option>`).join('');
+ const EX=[['terraza','Terraza'],['balcon','Balcón'],['ascensor','Ascensor'],['ext','Exterior'],['parking','Parking'],['trastero','Trastero']];
+ $('#c-ex').innerHTML='<span style="color:var(--mu);align-self:center">Comparar solo con pisos que tengan:</span>'+EX.map(([k,l])=>`<label><input type="checkbox" data-k="${k}"> ${l}</label>`).join('')+'<label><input type="checkbox" id="c-npl" checked> sin fichas repetidas</label>';
+ const has=(r,k)=>k==='ext'?r.ext===1:r.f.includes(k);
+ function draw(){
+  const out=$('#c-out'),m2=+$('#c-m2').value,price=+$('#c-price').value||null,rooms=+$('#c-rooms').value||null,key=$('#c-bar').value,mun=key.split('|')[1];
+  if(!m2||m2<20){out.innerHTML='<div class="verdict v-none">Pon el barrio y los m² (y el precio) y te digo si está bien de precio.</div>';return;}
+  const need=[...document.querySelectorAll('#c-ex [data-k]:checked')].map(e=>e.dataset.k),npl=$('#c-npl').checked;
+  const okx=r=>need.every(k=>has(r,k))&&!(npl&&r.plantilla)&&(!rooms||Math.abs((r.rooms||0)-rooms)<=1)&&r.eur_m2!=null&&r.m2;
+  const pool=P.rows.filter(okx);let comps=[],desc='';
+  for(const [scope,dm,label] of [['b',.15,'mismo barrio, ±15% de m²'],['b',.3,'mismo barrio, ±30% de m²'],['m',.3,'mismo municipio, ±30% de m²']]){
+   const c=pool.filter(r=>r.a&&Math.abs(r.m2-m2)<=m2*dm&&(scope==='b'?(r.barrio||'')+'|'+r.mun===key:r.mun===mun));
+   if(c.length>=8||label.startsWith('mismo municipio')&&c.length>=3){comps=c;desc=label;break;}
+  }
+  if(comps.length<3){out.innerHTML=`<div class="verdict v-none"><h3>Pocos datos 🤷</h3>Solo hay ${comps.length} pisos parecidos. Prueba a quitar extras o habitaciones.</div>`;return;}
+  const E=comps.map(r=>[r.eur_m2,1]),p=q=>wq(E,q),p5=p(.05),p25=p(.25),p50=p(.5),p75=p(.75),p95=p(.95),mine=price?price/m2:null;
+  const lo=Math.min(p5,mine??p5)*.95,hi=Math.max(p95,mine??p95)*1.05,pos=x=>((x-lo)/(hi-lo)*100).toFixed(1)+'%';
+  let head='Así está el mercado 📊',cls='v-none',txt='Escribe el precio que piden y te digo si está bien.';
+  if(mine){const below=E.filter(x=>x[0]<mine).length,pct=Math.round(100*below/E.length),dif=Math.round((mine/p50-1)*100);
+   [cls,head]=pct<=20?['v-great','Muy buen precio 🔥']:pct<=45?['v-good','Buen precio 👍']:pct<=65?['v-ok','Precio normal 👌']:pct<=85?['v-high','Algo caro 🤔']:['v-bad','Caro ❌'];
+   const n10=Math.round(pct/10);txt=`De cada 10 pisos parecidos, <b>${n10}</b> ${n10===1?'pide':'piden'} menos €/m² que este. Está un <b>${Math.abs(dif)}% ${dif<0?'por debajo':'por encima'}</b> de lo típico (${fmt(p50)} €/m²).`+(dif<=-30?' <br>⚠️ Está demasiado por debajo: mira por qué (a reformar, alquilado, ocupado, error en los m², oferta falsa…).':'');}
+  const r2=x=>Math.round(x*m2/1000)*1000;
+  const gone=pool.filter(r=>r.ret&&Math.abs(r.m2-m2)<=m2*.3&&(desc.startsWith('mismo barrio')?(r.barrio||'')+'|'+r.mun===key:r.mun===mun)).sort((a,b)=>Math.abs(a.eur_m2-(mine||p50))-Math.abs(b.eur_m2-(mine||p50))).slice(0,4);
+  const mdays=gone.length?gone.map(r=>r.days).filter(x=>x!=null).sort((a,b)=>a-b)[Math.floor(gone.length/2)]:null;
+  const card=r=>`<div class="mc"><b>${eur(r.price)}</b>${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²${r.rooms?' · '+fmt(r.rooms)+' hab':''}${r.disc!=null?` · <span class="${r.disc<0?'neg':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}% vs modelo</span>`:''}<br>${r.ret?`salió tras ${fmt(r.days)} días · `:''}${link(r.url,'Ver anuncio')}</div>`;
+  const near=[...comps].sort((a,b)=>Math.abs(a.eur_m2-(mine||p50))-Math.abs(b.eur_m2-(mine||p50))).slice(0,6);
+  out.innerHTML=`<div class="verdict ${cls}"><h3>${head}</h3>${txt}
+   <div class="gauge"><div class="band" style="left:${pos(p25)};width:calc(${pos(p75)} - ${pos(p25)})"></div><div class="med" style="left:${pos(p50)}"></div>${mine?`<div class="me" style="left:${pos(mine)}"></div>`:''}</div>
+   <div class="gl"><span>${fmt(lo)} €/m²</span><span>zona normal (azul) · raya blanca = típico${mine?' · amarillo = este':''}</span><span>${fmt(hi)} €/m²</span></div>
+   <div style="margin-top:10px">Para ${m2} m², lo normal está entre <b>${eur(r2(p25))}</b> y <b>${eur(r2(p75))}</b> (típico ${eur(r2(p50))}). Comparo con ${comps.length} pisos activos: ${desc}${need.length?', con '+need.join(', '):''}.</div>
+   ${mine&&mine>p50?`<div style="margin-top:6px">💡 Para negociar, apunta a ~<b>${eur(r2(p50))}</b> (típico) o ~<b>${eur(r2(p25))}</b> si quieres chollo.</div>`:''}
+   <div style="color:var(--mu);font-size:12px;margin-top:6px">Es lo que piden, no lo que se paga; casi siempre se negocia algo. ${gone.length?`Pisos parecidos que ya salieron estaban ~${fmt(mdays)} días.`:''}</div></div>
+   <h2 style="margin-top:8px">Los más parecidos a la venta</h2><div class="mini">${near.map(card).join('')}</div>`+
+   (gone.length?`<h2 style="margin-top:14px">Ya no están (vendidos o retirados)</h2><div class="mini">${gone.map(card).join('')}</div>`:'');
+ }
+ ['#c-bar','#c-npl'].forEach(s=>$(s).onchange=draw);document.querySelectorAll('#c-ex [data-k]').forEach(e=>e.onchange=draw);
+ ['#c-m2','#c-price','#c-rooms'].forEach(s=>$(s).oninput=draw);draw();
 }
 function initPisos(P){
  const FL=[['terraza','Terraza'],['balcon','Balcón'],['patio_jardin','Patio/jardín'],['ext','Exterior'],['ascensor','Ascensor'],['parking','Parking'],
