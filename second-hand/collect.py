@@ -186,24 +186,29 @@ def fetch_counters(client, product, run_id, ids):
 
 
 def check_status(client, product, run_id, items):
+    """Estado de anuncios que ya no salen en búsqueda, por la API (la página web da error desde GitHub).
+    404 = borrado; 200 con sold.flag = vendido; 200 sin flag = sigue publicado (fuera de la búsqueda)."""
     rows = []
     for iid, slug in items:
-        if not slug:
-            continue
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        r = client.get(f"https://es.wallapop.com/item/{slug}", headers={"Accept": "text/html"}, follow_redirects=True)
         base = {"run_id": run_id, "product": product, "checked_at": now, "id": iid}
-        if r.status_code == 404:
-            rows.append({**base, "http_status": 404, "final": 1})
-        elif r.status_code == 200 and (it := parse_item_page(r.text)):
-            fl = it.get("flags") or {}
-            rows.append({**base, "http_status": 200, "sold": int(bool(fl.get("sold"))),
-                         "expired": int(bool(fl.get("expired"))), "reserved": int(bool(fl.get("reserved"))),
-                         "price": ((it.get("price") or {}).get("cash") or {}).get("amount"),
-                         "condition": (it.get("condition") or {}).get("value"), "views": it.get("views"),
-                         "favorites": it.get("favorites"), "modified_at": ms_to_iso(it.get("modifiedDate")),
-                         "final": int(bool(fl.get("sold") or fl.get("expired")))})
-        time.sleep(random.uniform(1.5, 3.0))
+        try:
+            r = client.get(f"https://api.wallapop.com/api/v3/items/{iid}")
+            if r.status_code == 404:
+                rows.append({**base, "http_status": 404, "final": 1})
+            elif r.status_code == 200:
+                j = r.json()
+                c = j.get("counters") or {}
+                sold = int(bool((j.get("sold") or {}).get("flag")))
+                expired = int(bool(j.get("expired")))
+                rows.append({**base, "http_status": 200, "sold": sold, "expired": expired,
+                             "reserved": int(bool((j.get("reserved") or {}).get("flag"))),
+                             "price": ((j.get("price") or {}).get("cash") or {}).get("amount"),
+                             "views": c.get("views"), "favorites": c.get("favorites"),
+                             "modified_at": ms_to_iso(j.get("modified_date")), "final": int(bool(sold or expired))})
+        except (httpx.HTTPError, ValueError):
+            continue
+        time.sleep(random.uniform(1.0, 2.0))
     return rows
 
 
