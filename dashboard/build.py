@@ -128,6 +128,7 @@ def main():
     with open(os.path.join(OUT, "data.json"), "w", encoding="utf-8") as fh:
         json.dump(data, fh, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     shutil.copy(os.path.join(ROOT, "dashboard", "index.html"), os.path.join(OUT, "index.html"))
+    shutil.copytree(os.path.join(ROOT, "dashboard", "vendor"), os.path.join(OUT, "vendor"), dirs_exist_ok=True)
     print("ok", os.path.getsize(os.path.join(OUT, "data.json")) // 1024, "KB")
 
 
