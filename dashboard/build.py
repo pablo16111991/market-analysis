@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
+import model as price_model
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "dashboard", "site")
 # Pablo: un anuncio "borrado" casi seguro se vendio, asi que cuenta como vendido probable en el dashboard.
@@ -100,6 +102,16 @@ def build_pisos():
     ids = set(sc.id)
     flags = listing_flags(ids)
 
+    # --- modelo de precio justo (solo anuncios activos) ---
+    det = price_model.load_details(ids, sorted(glob.glob(os.path.join(ROOT, "pisos/data/raw/*_details.csv"))))
+    d = sc[(sc.state == "activo") & sc.surface.between(30, 250) & sc.price_last.notna()].copy()
+    d = d.set_index("id")
+    d["f"] = [flags[i] for i in d.index]
+    for col in ["FLOOR", "ANTIQUITY", "CONSERVATION_STATE"]:
+        d[col] = [det.get(i, {}).get(col) for i in d.index]
+    d["bkey"] = [price_model.barrio_key(n, m) for n, m in zip(d.neighborhood, d.municipality)]
+    mdl, _mkt, oof = price_model.fit(d)
+
     # historico: por dia, [id, eur_m2] de los anuncios en ambito (el cliente filtra por id)
     hist = {}
     for day, df in daily_latest(os.path.join(ROOT, "pisos/data/raw/*_search.csv")).items():
@@ -113,7 +125,21 @@ def build_pisos():
     for r in sc.itertuples():
         m = med.get(r.neighborhood)
         rel = None if (pd.isna(r.eur_m2) or not m) else round((r.eur_m2 / m - 1) * 100, 1)
-        rows.append({"id": int(r.id), "a": int(r.state == "activo"), "ret": int(r.state == "retirado"),
+        fair = oof.get(r.id) if r.id in oof.index else None
+        disc = None if fair is None else round((r.price_last / fair - 1) * 100, 1)
+        warn = []
+        if r.a_reformar == 1:
+            warn.append("a reformar")
+        if r.rented == 1:
+            warn.append("alquilado")
+        if int(r.plantilla or 0):
+            warn.append("ficha repetida por agencias")
+        if disc is not None and disc <= -30:
+            warn.append("muy por debajo: revisar (error, defecto u oferta falsa)")
+        if mdl["n_barrio"].get(price_model.barrio_key(r.neighborhood, r.municipality), 0) < 5:
+            warn.append("pocos datos del barrio")
+        rows.append({"id": int(r.id), "a": int(r.state == "activo"),
+                     "fair": None if fair is None else int(round(fair, -2)), "disc": disc, "warn": warn, "ret": int(r.state == "retirado"),
                      "fs": r.first_seen, "ls": r.last_seen, "new": int(r.first_seen == today),
                      "url": r.url, "barrio": r.neighborhood, "mun": r.municipality,
                      "price": num(r.price_last), "eur_m2": num(r.eur_m2), "m2": num(r.surface),
@@ -121,7 +147,7 @@ def build_pisos():
                      "chg": num(r.price_changes), "plantilla": int(r.plantilla or 0), "rel": rel,
                      "ext": int(r.exterior == 1) if not pd.isna(r.exterior) else None,
                      "lat": num(r.lat), "lon": num(r.lon), "f": flags[r.id]})
-    return {"retirados": int((c.state == "retirado").sum()), "hist": hist, "rows": rows}
+    return {"retirados": int((c.state == "retirado").sum()), "hist": hist, "rows": rows, "model": mdl}
 
 
 def build_sh():

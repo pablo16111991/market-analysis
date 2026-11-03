@@ -63,6 +63,25 @@ details{background:var(--card);border-radius:10px;padding:10px 12px;margin-botto
 </header>
 <main>
 <section id="pisos">
+ <div class="card" style="margin-bottom:12px">
+  <h2 style="font-size:16px;color:var(--tx)">🏠 ¿Cuánto vale este piso?</h2>
+  <div class="q">
+   <div><label>Barrio</label><select id="v-bar"></select></div>
+   <div><label>m²</label><input id="v-m2" type="number" inputmode="numeric" placeholder="ej. 70"></div>
+   <div><label>Habitaciones</label><input id="v-rooms" type="number" inputmode="numeric" value="3"></div>
+   <div><label>Baños</label><input id="v-baths" type="number" inputmode="numeric" value="1"></div>
+   <div><label>Planta</label><select id="v-floor"><option value="">No sé</option><option value="0">Bajo</option><option value="0.5">Entresuelo</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option value="9">Ático</option></select></div>
+   <div><label>Ascensor</label><select id="v-elev"><option value="1">Sí</option><option value="0">No</option></select></div>
+   <div><label>Exterior</label><select id="v-ext"><option value="1">Sí</option><option value="0">No</option></select></div>
+   <div><label>Estado</label><select id="v-cons"><option value="">No sé</option><option value="ALMOST_NEW">Casi nuevo</option><option value="REFURBISHED">Reformado</option><option value="VERY_GOOD">Muy bueno</option><option value="GOOD">Bueno</option><option value="FOR_RENOVATION">A reformar</option></select></div>
+   <div><label>Antigüedad</label><select id="v-ant"><option value="">No sé / 50-70 años</option><option value="LESS_THAN_1_YEAR">Menos de 1 año</option><option value="BETWEEN_1_AND_5_YEARS">1-5 años</option><option value="BETWEEN_10_AND_20_YEARS">10-20 años</option><option value="BETWEEN_20_AND_30_YEARS">20-30 años</option><option value="BETWEEN_30_AND_50_YEARS">30-50 años</option><option value="BETWEEN_70_AND_100_YEARS">70-100 años</option><option value="MORE_THAN_100_YEARS">+100 años</option></select></div>
+   <div><label>Tipo</label><select id="v-sub"><option value="">Piso normal</option><option value="PENTHOUSE">Ático</option><option value="GROUND_FLOOR">Planta baja</option><option value="DUPLEX_APARTMENT">Dúplex</option><option value="LOFT">Loft</option><option value="STUDIO">Estudio</option><option value="APARTMENT">Apartamento</option></select></div>
+   <div><label>Certificado energético</label><select id="v-en"><option value="">No sé</option><option value="G">G</option><option value="EF">E-F</option><option value="AD">A-D</option></select></div>
+   <div><label>Precio que piden (€, opcional)</label><input id="v-ask" class="big" type="number" inputmode="numeric" placeholder="ej. 245000"></div>
+  </div>
+  <div class="ctl" id="v-ex" style="margin-top:10px"></div>
+  <div id="v-out"></div>
+ </div>
  <div class="card" id="p-filters" style="margin-bottom:12px">
   <div class="chips" id="p-chips"></div>
   <div class="ctl" style="margin:8px 0 0">
@@ -71,6 +90,8 @@ details{background:var(--card);border-radius:10px;padding:10px 12px;margin-botto
    <input id="f-rooms" type="number" placeholder="Hab. mín" style="width:90px">
    <select id="p-mun"></select>
    <label><input type="checkbox" id="p-pl"> sin plantilla</label>
+   <input id="f-disc" type="number" placeholder="Más barato que parecidos ≥ %" style="width:210px">
+   <label><input type="checkbox" id="f-nowarn"> sin avisos (reformar, alquilado…)</label>
    <button class="tab" id="f-reset">Limpiar</button>
    <span id="f-count" style="color:var(--mu);align-self:center"></span>
   </div>
@@ -90,9 +111,9 @@ details{background:var(--card);border-radius:10px;padding:10px 12px;margin-botto
   </div>
  </div>
  <div class="card" style="margin-bottom:12px"><h2>Mapa (color = €/m² frente a su barrio: verde barato, rojo caro)</h2><div id="map"></div></div>
- <div class="card"><h2>Oportunidades</h2>
+ <div class="card"><h2>Oportunidades (precio vs pisos parecidos: mismo barrio/zona, m², planta, estado, extras)</h2>
   <div class="ctl">
-   <select id="p-sort"><option value="rel">Más baratos que su barrio</option><option value="drop">Mayor bajada de precio</option><option value="days">Más días publicados</option></select>
+   <select id="p-sort"><option value="disc">Mejor precio vs pisos parecidos</option><option value="rel">Más baratos que su barrio</option><option value="drop">Mayor bajada de precio</option><option value="days">Más días publicados</option></select>
   </div>
   <div class="scroll"><table id="p-tab"></table></div>
  </div>
@@ -157,7 +178,7 @@ fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(D=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
   ['pisos','sh'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
   if(b.dataset.t==='pisos'&&window.map)setTimeout(()=>map.invalidateSize(),50);});
- for(const f of [()=>initPisos(D.pisos),()=>initSH(D.sh)]){try{f()}catch(e){console.error(e);$('#gen').textContent+=' | error: '+e.message}}
+ for(const f of [()=>initVal(D.pisos),()=>initPisos(D.pisos),()=>initSH(D.sh)]){try{f()}catch(e){console.error(e);$('#gen').textContent+=' | error: '+e.message}}
 }).catch(e=>{$('#gen').textContent='Error cargando datos: '+e.message});
 
 function trend(all,dates,hist,ids){
@@ -176,6 +197,39 @@ function trend(all,dates,hist,ids){
  chart('#t-flow',{type:'bar',data:{labels:dates,datasets:[{label:'Nuevos',data:nue,backgroundColor:'#4f8cff'},{label:'Retirados',data:ret,backgroundColor:'#34c759'}]},options:{plugins:{title:{display:true,text:'Entradas vs retirados por día',color:'#9aa0a6'}}}});
  chart('#t-rate',{type:'line',data:{labels:dates,datasets:[{label:'% retirado/día',data:rate,borderColor:'#34c759',tension:.2},{label:'media 7 días',data:ma,borderColor:'#e0b341',borderDash:[4,4],tension:.2}]},options:{plugins:{title:{display:true,text:'Tasa de retirada diaria (si baja, se vende menos)',color:'#9aa0a6'}}}});
 }
+function initVal(P){
+ const M=P.model,EX=[['terraza','Terraza'],['balcon','Balcón'],['patio_jardin','Patio/jardín'],['trastero','Trastero'],['aire','Aire acond.'],['piscina','Piscina'],['parking','Parking'],['luminoso','Luminoso'],['vista_mar','Vista al mar'],['amueblado','Amueblado'],['rented','Alquilado (con inquilino)']];
+ const keys=Object.keys(M.barrio).sort((a,b)=>a.localeCompare(b)),lab=k=>{const [b,m]=k.split('|');return (b==='nan'?'(sin barrio)':b)+' · '+m;};
+ $('#v-bar').innerHTML=keys.map(k=>`<option value="${k}">${lab(k)}</option>`).join('');
+ $('#v-ex').innerHTML=EX.map(([k,l])=>`<label><input type="checkbox" data-k="${k}"> ${l}</label>`).join('');
+ function calc(){
+  const m2=+$('#v-m2').value,key=$('#v-bar').value,out=$('#v-out');
+  if(!m2||m2<20){out.innerHTML='<div class="verdict v-none">Pon los m² y el barrio y te digo cuánto debería valer.</div>';return;}
+  const x={},ex=k=>document.querySelector(`#v-ex [data-k="${k}"]`).checked?1:0,flv=$('#v-floor').value,fl=flv===''?2:+flv,el=+$('#v-elev').value;
+  x.lsurf=Math.log(m2);x.rooms=+$('#v-rooms').value||3;x.baths=+$('#v-baths').value||1;x.floor_known=flv===''?0:1;x.elev=el;x.floor=Math.min(fl,7);x.walkup_high=(1-el)*(fl>=3?1:0);
+  x.ext=+$('#v-ext').value;EX.forEach(([k])=>{if(k!=='rented')x['f_'+k]=ex(k)});x.rented=ex('rented');
+  const cs=$('#v-cons').value;x.a_reformar=cs==='FOR_RENOVATION'?1:0;x.c_unk=cs===''?1:0;['ALMOST_NEW','REFURBISHED','VERY_GOOD','FOR_RENOVATION'].forEach(c=>x['c_'+c]=cs===c?1:0);
+  const an=$('#v-ant').value;['LESS_THAN_1_YEAR','BETWEEN_1_AND_5_YEARS','BETWEEN_10_AND_20_YEARS','BETWEEN_20_AND_30_YEARS','BETWEEN_30_AND_50_YEARS','BETWEEN_70_AND_100_YEARS','MORE_THAN_100_YEARS'].forEach(a=>x['a_'+a]=an===a?1:0);
+  const sb=$('#v-sub').value;['PENTHOUSE','GROUND_FLOOR','DUPLEX_APARTMENT','LOFT','STUDIO','APARTMENT'].forEach(s=>x['s_'+s]=sb===s?1:0);
+  const en=$('#v-en').value;x.e_G=en==='G'?1:0;x.e_good=en==='AD'?1:0;
+  let lg=M.k+M.barrio[key];for(const [n,c] of Object.entries(M.x))lg+=c*(x[n]||0);
+  const fair=Math.exp(lg),lo=fair*Math.exp(-M.sigma),hi=fair*Math.exp(M.sigma),ask=+$('#v-ask').value||null,nb=M.n_barrio[key]||0;
+  let head='Precio de mercado estimado',cls='v-ok',txt='';
+  if(ask){const d=Math.round((ask/fair-1)*100);
+   [cls,head]=d<=-15?['v-great','Muy barato 🔥 (revisa por qué)']:d<=-6?['v-good','Barato 👍']:d<=6?['v-ok','Precio de mercado 👌']:d<=15?['v-high','Algo caro 🤔']:['v-bad','Caro ❌'];
+   txt=`Piden <b>${eur(ask)}</b>: un <b>${Math.abs(d)}% ${d<0?'por debajo':'por encima'}</b> del precio estimado. `;}
+  const w=[];if(nb<5)w.push(`hay pocos pisos de este barrio (${nb}) en mi base`);if(fair>M.hi*0.92)w.push(`solo veo pisos hasta ${fmt(M.hi)} €, así que por encima de eso la estimación es menos fiable`);
+  const eff=EX.filter(([k])=>ex(k)).map(([k,l])=>{const c=M.x[k==='rented'?'rented':'f_'+k];return `${l} ${c>=0?'+':''}${(Math.expm1(c)*100).toFixed(1)}%`;});
+  const sim=P.rows.filter(r=>r.a&&r.price&&r.m2&&Math.abs(r.m2-m2)<=m2*0.2&&(r.barrio+'|'+r.mun)===key).sort((a,b)=>Math.abs(a.price-(ask||fair))-Math.abs(b.price-(ask||fair))).slice(0,6);
+  out.innerHTML=`<div class="verdict ${cls}"><h3>${head}</h3>${txt}Estimo <b style="font-size:20px">${eur(Math.round(fair/1000)*1000)}</b> (${fmt(fair/m2)} €/m²). Rango habitual: <b>${eur(Math.round(lo/1000)*1000)}</b> – <b>${eur(Math.round(hi/1000)*1000)}</b>.
+   ${eff.length?`<div style="color:var(--mu);font-size:12px;margin-top:6px">Lo que aportan tus extras: ${eff.join(' · ')}</div>`:''}
+   ${w.length?`<div style="color:#e0b341;font-size:12px;margin-top:6px">⚠️ ${w.join('; ')}.</div>`:''}
+   <div style="color:var(--mu);font-size:12px;margin-top:6px">Es lo que piden por pisos parecidos, no lo que se paga. Error típico del modelo: ~${Math.round(M.med_pct*100)}% (en pisos que ya conoce). No ve fotos, calle exacta ni orientación real.</div></div>`+
+   (sim.length?`<h2 style="margin-top:8px">Pisos parecidos a la venta en ${lab(key)}</h2><div class="mini">${sim.map(r=>`<div class="mc"><b>${eur(r.price)}</b>${fmt(r.m2)} m² · ${fmt(r.rooms)} hab · ${fmt(r.eur_m2)} €/m²${r.disc!=null?` · <span class="${r.disc<0?'neg':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`:''}<br>${link(r.url,'Ver anuncio')}</div>`).join('')}</div>`:'');
+ }
+ document.querySelectorAll('#pisos .q select, #pisos .q input, #v-ex input').forEach(e=>{if(e.id&&e.id.startsWith('v-')||e.closest('#v-ex')){e.onchange=calc;e.oninput=calc;}});
+ calc();
+}
 function initPisos(P){
  const FL=[['terraza','Terraza'],['balcon','Balcón'],['patio_jardin','Patio/jardín'],['ext','Exterior'],['ascensor','Ascensor'],['parking','Parking'],
   ['trastero','Trastero'],['aire','Aire acond.'],['piscina','Piscina'],['luminoso','Luminoso'],['reformado','Reformado'],['amueblado','Amueblado'],
@@ -189,15 +243,16 @@ function initPisos(P){
  window.map=L.map('map').setView([41.43,2.2],11);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
  const layer=L.layerGroup().addTo(map);
- const cols=[{k:'barrio',h:'Barrio',f:r=>link(r.url,r.barrio)},{k:'price',h:'Precio',f:r=>fmt(r.price)},{k:'m2',h:'m²',f:r=>fmt(r.m2)},
+ const cols=[{k:'barrio',h:'Barrio',f:r=>link(r.url,r.barrio||'(sin barrio)')+(r.warn&&r.warn.length?` <span title="${r.warn.join(' · ')}">⚠️</span>`:'')},{k:'disc',h:'vs parecidos',f:r=>r.disc==null?'–':`<span class="${r.disc<0?'neg':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`},{k:'fair',h:'Típico',f:r=>fmt(r.fair)},{k:'price',h:'Precio',f:r=>fmt(r.price)},{k:'m2',h:'m²',f:r=>fmt(r.m2)},
   {k:'eur_m2',h:'€/m²',f:r=>fmt(r.eur_m2)},{k:'rel',h:'vs barrio',f:r=>r.rel==null?'–':`<span class="${r.rel<0?'neg':'pos'}">${r.rel>0?'+':''}${r.rel}%</span>`},
   {k:'drop',h:'Bajada',f:r=>r.drop?fmt(r.drop,1)+'%':'–'},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'rooms',h:'Hab'}];
  function redraw(){
   const pmax=+$('#f-pmax').value||1e12, m2=+$('#f-m2').value||0, rm=+$('#f-rooms').value||0, mun=$('#p-mun').value, npl=$('#p-pl').checked;
-  const ok=r=>r.price<=pmax&&(r.m2||0)>=m2&&(r.rooms||0)>=rm&&(!mun||r.mun===mun)&&!(npl&&r.plantilla)&&[...on].every(k=>has(r,k));
+  const dmin=+$('#f-disc').value||0, nowarn=$('#f-nowarn').checked;
+  const ok=r=>(!dmin||(r.disc!=null&&r.disc<=-dmin))&&!(nowarn&&r.warn&&r.warn.length)&&r.price<=pmax&&(r.m2||0)>=m2&&(r.rooms||0)>=rm&&(!mun||r.mun===mun)&&!(npl&&r.plantilla)&&[...on].every(k=>has(r,k));
   const all=P.rows.filter(ok), act=all.filter(r=>r.a), ids=new Set(all.map(r=>r.id));
   $('#f-count').textContent=`${fmt(act.length)} de ${fmt(P.rows.filter(r=>r.a).length)} pisos`;
-  kpis('#p-kpis',[['Activos (con filtros)',fmt(act.length)],['Nuevos hoy',fmt(act.filter(r=>r.new).length)],['Con bajada de precio',fmt(act.filter(r=>r.drop>0).length)],
+  kpis('#p-kpis',[['Activos (con filtros)',fmt(act.length)],['Nuevos hoy',fmt(act.filter(r=>r.new).length)],['Con bajada de precio',fmt(act.filter(r=>r.drop>0).length)],['≥10% más baratos que parecidos',fmt(act.filter(r=>r.disc!=null&&r.disc<=-10&&!(r.warn&&r.warn.length)).length)],
    ['Retirados (acum., sin filtros)',fmt(P.retirados)],['€/m² mediano',fmt(med(act.map(r=>r.eur_m2)))],['Precio mediano',eur(med(act.map(r=>r.price)))]]);
   const dates=Object.keys(P.hist).sort();
   chart('#p-ser',{type:'line',data:{labels:dates,datasets:[{label:'€/m²',data:dates.map(d=>med(P.hist[d].filter(x=>ids.has(x[0])).map(x=>x[1]))),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
@@ -211,11 +266,12 @@ function initPisos(P){
    L.circleMarker([r.lat,r.lon],{radius:5,color:c,fillColor:c,fillOpacity:.7,weight:1}).addTo(layer)
     .bindPopup(`${r.barrio}<br>${eur(r.price)} · ${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²<br>${link(r.url,'Ver anuncio')}`);});
   const s=$('#p-sort').value;
-  table('#p-tab',cols,[...act].sort((a,b)=>s==='rel'?(a.rel??99)-(b.rel??99):s==='drop'?(b.drop||0)-(a.drop||0):(b.days||0)-(a.days||0)));
+  table('#p-tab',cols,[...act].sort((a,b)=>s==='disc'?(a.disc??99)-(b.disc??99):s==='rel'?(a.rel??99)-(b.rel??99):s==='drop'?(b.drop||0)-(a.drop||0):(b.days||0)-(a.days||0)));
  }
  ['#p-sort','#p-mun','#p-pl'].forEach(s=>$(s).onchange=redraw);
- ['#f-pmax','#f-m2','#f-rooms'].forEach(s=>$(s).oninput=redraw);
- $('#f-reset').onclick=()=>{on.clear();document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));['#f-pmax','#f-m2','#f-rooms'].forEach(s=>$(s).value='');$('#p-mun').value='';$('#p-pl').checked=false;redraw();};
+ ['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).oninput=redraw);
+ $('#f-nowarn').onchange=redraw;
+ $('#f-reset').onclick=()=>{on.clear();document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).value='');$('#f-nowarn').checked=false;$('#p-mun').value='';$('#p-pl').checked=false;redraw();};
  redraw();
 }
 
