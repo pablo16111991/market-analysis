@@ -358,14 +358,14 @@ function initSH(S){
   const cd=$('#s-cond').value,okc=r=>!cd||(cd==='_used'?!r.is_new:cd==='_new'?!!r.is_new:r.cond===cd);
   const base=P.rows.filter(r=>(!$('#s-sc').checked||r.sc)&&!($('#s-nonew').checked&&r.is_new&&cd!=='_new')&&okc(r)&&(!v||r.variant===v)&&(!se||r.seller===se)&&(!re||r.region===re)
    &&(a2!=='1'||r.a2!==0)&&(!$('#s-abs').checked||r.abs)&&(!$('#s-qs').checked||r.qs));
-  let comps=base,desc='todas las '+pretty(cur)+' que he visto';
+  let comps=base,desc='todas las '+pretty(cur)+' que he visto',fb=false;
   if(yr||km){
    for(const [dy,dk] of [[1,.4],[2,.7]]){
     const c=base.filter(r=>(!yr||(r.year!=null&&Math.abs(r.year-yr)<=dy))&&(!km||(r.km!=null&&Math.abs(r.km-km)<=km*dk+2000)));
     if(c.filter(r=>r.state==='activo').length>=6||dy===2&&c.filter(r=>r.state==='activo').length>=3){comps=c;
      desc='parecidas'+(yr?` (año ${yr-dy}–${yr+dy}`:' (')+(km?`${yr?', ':''}${fmt(Math.max(0,km*(1-dk)-2000))}–${fmt(km*(1+dk)+2000)} km`:'')+')';break;}
    }
-   if(comps===base)desc='todas (hay pocas parecidas en año/km)';
+   if(comps===base){desc='todas (hay pocas parecidas en año/km)';fb=true;}
   }
   const act=comps.filter(r=>r.state==='activo'&&r.price!=null),paid=comps.filter(r=>r.paid);
   const A=act.map(r=>[r.price,1/r.dup]),D=paid.map(r=>[r.final??r.price,1/r.dup]);
@@ -375,7 +375,11 @@ function initSH(S){
    const p5=wq(A,.05),p25=wq(A,.25),p50=wq(A,.5),p75=wq(A,.75),p95=wq(A,.95);
    const lo=Math.min(p5,mine??p5)*.95,hi=Math.max(p95,mine??p95)*1.05,pos=x=>((x-lo)/(hi-lo)*100).toFixed(1)+'%';
    const tot=A.reduce((s,x)=>s+x[1],0);let head='',cls='v-none',txt='';
-   if(mine){
+   if(mine&&fb){
+    const ks=base.map(r=>r.km).filter(x=>x!=null),ys=base.map(r=>r.year).filter(x=>x!=null),rg=(a,u)=>a.length?`${fmt(Math.min(...a))}–${fmt(Math.max(...a))}${u}`:'?';
+    cls='v-none';head='Sin referencia fiable 🤷';
+    txt=`No tengo motos${yr?' de '+yr:''}${yr&&km?' con':''}${km?' '+fmt(km)+' km':''} para comparar. En mis datos hay años ${rg(ys,'')} y ${rg(ks,' km')}.`+(km&&km>300000?' <b>¿Seguro de los km?</b> Parece un error.':'')+` Por eso <b>no te digo si es buen precio</b>: abajo ves el mercado general, sin ajustar por año ni km.`;
+   } else if(mine){
     const pct=Math.round(100*A.filter(x=>x[0]<mine).reduce((s,x)=>s+x[1],0)/tot),dif=Math.round((mine/p50-1)*100);
     [cls,head]=pct<=20?['v-great','Muy buen precio 🔥']:pct<=45?['v-good','Buen precio 👍']:pct<=65?['v-ok','Precio normal 👌']:pct<=85?['v-high','Algo cara 🤔']:['v-bad','Cara ❌'];
     const de10=Math.max(0,Math.min(10,Math.round(pct/10)));
