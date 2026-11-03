@@ -125,31 +125,28 @@ def build_pisos():
 
 def build_sh():
     prods = {}
+    days = daily_latest(os.path.join(ROOT, "second-hand/data/raw/*_search.csv"))
     for f in sorted(glob.glob(os.path.join(ROOT, "second-hand/data/clean/*.csv"))):
         name = os.path.basename(f)[:-4]
         c = pd.read_csv(f)
-        sc = c[c.in_scope == 1]
-        act = sc[sc.state == "activo"]
-        paid = sc[sc.state.isin(PAID_STATES)]
-        ids = set(sc.id)
-        series = []
-        for day, df in daily_latest(os.path.join(ROOT, "second-hand/data/raw/*_search.csv")).items():
+        ids = set(c.id)
+        hist = {}
+        for day, df in days.items():
             df = df[(df["product"] == name) & df.id.isin(ids)]
-            series.append({"date": day, "n": int(len(df)), "price": pct(df.price, .5)})
+            hist[day] = [[i, num(p)] for i, p in zip(df.id, df.price)]
         today = c.first_seen.max()
+        g = lambda r, k: None if not hasattr(r, k) or pd.isna(getattr(r, k)) else getattr(r, k)
         rows = []
-        for r in sc.sort_values("price_last").itertuples():
-            rows.append({"url": r.url, "title": r.title, "state": r.state, "price": num(r.price_last),
-                         "final": num(r.price_final), "days": num(r.days_listed),
-                         "chg": num(r.price_changes), "seller": r.seller_type,
-                         "views_d": num(getattr(r, "views_por_dia", None)),
-                         "fav": num(getattr(r, "fav_por_visita_last", None)),
-                         "km": num(getattr(r, "km", None)), "year": num(getattr(r, "year", None)),
-                         "city": r.city})
-        prods[name] = {"asks": stats(act.price_last), "paid": stats(paid.price_final.fillna(paid.price_last)),
-                       "n_scope": int(len(sc)), "n_active": int(len(act)),
-                       "nuevos_hoy": int((act.first_seen == today).sum()),
-                       "vendidos": int(paid.shape[0]), "series": series, "rows": rows}
+        for r in c.itertuples():
+            rows.append({"id": r.id, "url": r.url, "title": r.title, "state": r.state, "sc": int(r.in_scope),
+                         "paid": int(r.state in PAID_STATES), "new": int(r.first_seen == today),
+                         "price": num(r.price_last), "final": num(r.price_final), "days": num(r.days_listed),
+                         "chg": num(r.price_changes), "seller": r.seller_type, "dup": num(r.dup_n) or 1,
+                         "is_new": int(r.is_new) if not pd.isna(r.is_new) else 0,
+                         "views_d": g(r, "views_por_dia"), "km": g(r, "km"), "year": g(r, "year"),
+                         "a2": g(r, "a2"), "variant": g(r, "variant"), "cond": g(r, "condition"),
+                         "region": g(r, "region"), "abs": int(bool(g(r, "abs"))), "qs": int(bool(g(r, "quickshifter")))})
+        prods[name] = {"rows": rows, "hist": hist}
     return prods
 
 

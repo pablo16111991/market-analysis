@@ -71,13 +71,29 @@ select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;bor
  </div>
 </section>
 <section id="sh" class="hide">
- <div class="ctl"><select id="s-prod"></select></div>
+ <div class="card" style="margin-bottom:12px">
+  <div class="ctl"><select id="s-prod"></select>
+   <label><input type="checkbox" id="s-sc" checked> solo ámbito del módulo</label>
+   <label><input type="checkbox" id="s-nonew" checked> excluir nuevas</label></div>
+  <div class="ctl" id="s-fil">
+   <input id="s-ymin" type="number" placeholder="Año mín" style="width:90px">
+   <input id="s-ymax" type="number" placeholder="Año máx" style="width:90px">
+   <input id="s-kmax" type="number" placeholder="Km máx" style="width:100px">
+   <input id="s-pmax" type="number" placeholder="Precio máx" style="width:110px">
+   <select id="s-var"></select><select id="s-sel"></select><select id="s-reg"></select><select id="s-a2"></select>
+   <label><input type="checkbox" id="s-abs"> ABS</label>
+   <label><input type="checkbox" id="s-qs"> Quickshifter</label>
+   <button class="tab" id="s-reset">Limpiar</button><span id="s-count" style="color:var(--mu);align-self:center"></span>
+  </div>
+  <div class="ctl" style="margin:0"><input id="s-mine" type="number" placeholder="Precio de la que miras €" style="width:200px;border-color:var(--ac)">
+   <div id="s-verdict" style="align-self:center"></div></div>
+ </div>
  <div class="kpis" id="s-kpis"></div>
  <div class="grid">
-  <div class="card"><h2>Piden (activos) vs se paga (vendidos, reservados y borrados)</h2><canvas id="s-cmp"></canvas></div>
-  <div class="card"><h2>Precio mediano de los activos por día</h2><canvas id="s-ser"></canvas></div>
+  <div class="card"><h2>Distribución de precios: piden (azul) y se paga (verde)</h2><canvas id="s-cmp"></canvas></div>
+  <div class="card"><h2>Precio mediano de los anuncios filtrados por día</h2><canvas id="s-ser"></canvas></div>
  </div>
- <div class="card"><h2>Anuncios en ámbito</h2><div class="scroll"><table id="s-tab"></table></div></div>
+ <div class="card"><h2>Anuncios (con filtros)</h2><div class="scroll"><table id="s-tab"></table></div></div>
 </section>
 </main>
 <script src="vendor/chart.umd.js"></script>
@@ -149,20 +165,57 @@ function initPisos(P){
  redraw();
 }
 
+function wq(pairs,q){ // cuantil ponderado; pairs=[[valor,peso]]
+ pairs=pairs.filter(x=>x[0]!=null).sort((x,y)=>x[0]-y[0]);const T=pairs.reduce((s,x)=>s+x[1],0);if(!T)return null;
+ let c=0;for(const [v,w] of pairs){c+=w;if(c>=q*T-1e-9)return v;}return pairs[pairs.length-1][0];}
 function initSH(S){
  const names=Object.keys(S);
  $('#s-prod').innerHTML=names.map(n=>`<option>${n}</option>`).join('');
- const draw=()=>{const p=S[$('#s-prod').value];
-  kpis('#s-kpis',[['Activos en ámbito',fmt(p.n_active)],['Nuevos hoy',fmt(p.nuevos_hoy)],['Vendidos (incl. reservados y borrados)',fmt(p.vendidos)],
-   ['Piden (mediana)',eur(p.asks.p50)],['Se paga (mediana)',p.paid.n?eur(p.paid.p50):'sin datos']]);
-  const lab=['p25','p50','p75'];
-  chart('#s-cmp',{type:'bar',data:{labels:lab,datasets:[{label:`Piden (n=${p.asks.n})`,data:lab.map(l=>p.asks[l]),backgroundColor:'#4f8cff'},
-   {label:`Se paga (n=${p.paid.n})`,data:lab.map(l=>p.paid[l]),backgroundColor:'#34c759'}]}});
-  chart('#s-ser',{type:'line',data:{labels:p.series.map(s=>s.date),datasets:[{label:'Mediana €',data:p.series.map(s=>s.price),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
+ const opt=(el,first,vals)=>{$(el).innerHTML=`<option value="">${first}</option>`+vals.map(v=>`<option>${v}</option>`).join('');};
+ const uniq=k=>[...new Set(S[$('#s-prod').value].rows.map(r=>r[k]).filter(x=>x!=null))].sort();
+ function setup(){
+  opt('#s-var','Todas las variantes',uniq('variant'));opt('#s-sel','Particular y tienda',uniq('seller'));
+  opt('#s-reg','Toda España',uniq('region'));$('#s-a2').innerHTML='<option value="">A2: cualquiera</option><option value="1">A2: sí (o desconocido)</option>';
+  const rr=S[$('#s-prod').value].rows,hasYear=rr.some(r=>r.year!=null);
+  ['#s-ymin','#s-ymax','#s-kmax','#s-abs','#s-qs','#s-a2'].forEach(s=>{const e=$(s);(e.closest('label')||e).classList.toggle('hide',!hasYear)});
+  $('#s-var').classList.toggle('hide',!hasYear);
+ }
+ function draw(){
+  const P=S[$('#s-prod').value],num=id=>+$(id).value||null;
+  const ymin=num('#s-ymin'),ymax=num('#s-ymax'),kmax=num('#s-kmax'),pmax=num('#s-pmax'),v=$('#s-var').value,se=$('#s-sel').value,re=$('#s-reg').value,a2=$('#s-a2').value;
+  const ok=r=>(!$('#s-sc').checked||r.sc)&&!($('#s-nonew').checked&&r.is_new)&&(!ymin||r.year>=ymin)&&(!ymax||r.year<=ymax)&&(!kmax||r.km<=kmax)
+   &&(!pmax||r.price<=pmax)&&(!v||r.variant===v)&&(!se||r.seller===se)&&(!re||r.region===re)&&(a2!=='1'||r.a2!==0)&&(!$('#s-abs').checked||r.abs)&&(!$('#s-qs').checked||r.qs);
+  const all=P.rows.filter(ok),act=all.filter(r=>r.state==='activo'),paid=all.filter(r=>r.paid),ids=new Set(all.map(r=>r.id));
+  const A=act.map(r=>[r.price,1/r.dup]),D=paid.map(r=>[r.final??r.price,1/r.dup]);
+  const q=(L,x)=>wq(L,x);
+  $('#s-count').textContent=`${act.length} activos · ${paid.length} vendidos/reservados/borrados`;
+  const n=(L)=>L.filter(x=>x[0]!=null).length;
+  kpis('#s-kpis',[['Activos',fmt(act.length)],['Nuevos hoy',fmt(act.filter(r=>r.new).length)],['Vendidos/reserv./borrados',fmt(paid.length)],
+   ['Piden p25 / p50 / p75',[.25,.5,.75].map(x=>fmt(q(A,x))).join(' / ')],['Se paga p25 / p50 / p75',n(D)>=3?[.25,.5,.75].map(x=>fmt(q(D,x))).join(' / '):'pocos datos (n='+n(D)+')']]);
+  const mine=+$('#s-mine').value;
+  if(mine&&n(A)){
+   const tot=A.reduce((s,x)=>s+x[1],0),below=A.filter(x=>x[0]<mine).reduce((s,x)=>s+x[1],0),pct=Math.round(100*below/tot);
+   const m=q(A,.5),d=Math.round((mine/m-1)*100),dd=n(D)>=3?Math.round((mine/q(D,.5)-1)*100):null;
+   const vd=pct<=25?['Barato','neg']:pct<=50?['Por debajo de la mediana','neg']:pct<=75?['Normal / algo alto','']:['Caro','pos'];
+   $('#s-verdict').innerHTML=`<b class="${vd[1]}">${vd[0]}</b> · más barato que el ${100-pct}% de los activos · ${d>0?'+':''}${d}% vs mediana de lo que piden`+(dd!=null?` · ${dd>0?'+':''}${dd}% vs lo que se paga`:'')+`<br><span style="color:var(--mu);font-size:12px">n=${n(A)} activos${n(A)<10?' (orientativo, pocos datos)':''}</span>`;
+  } else $('#s-verdict').textContent=mine?'Sin datos con estos filtros':'Escribe un precio para valorarlo';
+  const vals=[...A,...D].map(x=>x[0]).filter(x=>x!=null);
+  if(vals.length){const lo=Math.min(...vals),hi=Math.max(...vals),k=10,w=(hi-lo)/k||1,lab=[],ca=Array(k).fill(0),cd=Array(k).fill(0);
+   for(let i=0;i<k;i++)lab.push(fmt(lo+i*w)+'–'+fmt(lo+(i+1)*w));
+   const bin=x=>Math.min(k-1,Math.floor((x-lo)/w));A.forEach(x=>x[0]!=null&&ca[bin(x[0])]++);D.forEach(x=>x[0]!=null&&cd[bin(x[0])]++);
+   chart('#s-cmp',{type:'bar',data:{labels:lab,datasets:[{label:'Piden',data:ca,backgroundColor:'#4f8cff'},{label:'Se paga',data:cd,backgroundColor:'#34c759'}]},options:{scales:{x:{ticks:{maxRotation:60}}}}});}
+  else chart('#s-cmp',{type:'bar',data:{labels:[],datasets:[]}});
+  const dates=Object.keys(P.hist).sort(),md=a=>{const L=a.filter(x=>x!=null);return L.length?wq(L.map(x=>[x,1]),.5):null;};
+  chart('#s-ser',{type:'line',data:{labels:dates,datasets:[{label:'Mediana €',data:dates.map(d=>md(P.hist[d].filter(x=>ids.has(x[0])).map(x=>x[1]))),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
   table('#s-tab',[{k:'title',h:'Anuncio',f:r=>link(r.url,(r.title||'').slice(0,50))},{k:'state',h:'Estado'},{k:'price',h:'Precio',f:r=>fmt(r.price)},
-   {k:'days',h:'Días',f:r=>fmt(r.days)},{k:'chg',h:'Cambios',f:r=>fmt(r.chg)},{k:'views_d',h:'Visitas/día',f:r=>fmt(r.views_d,1)},
-   {k:'km',h:'km',f:r=>fmt(r.km)},{k:'year',h:'Año'},{k:'seller',h:'Vendedor'}],p.rows);};
- $('#s-prod').onchange=draw;draw();
+   {k:'year',h:'Año'},{k:'km',h:'km',f:r=>fmt(r.km)},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'chg',h:'Cambios',f:r=>fmt(r.chg)},
+   {k:'views_d',h:'Vis./día',f:r=>fmt(r.views_d,1)},{k:'seller',h:'Vendedor'},{k:'region',h:'Región'}],[...all].sort((a,b)=>(a.price??1e9)-(b.price??1e9)));
+ }
+ $('#s-prod').onchange=()=>{['#s-ymin','#s-ymax','#s-kmax','#s-pmax'].forEach(s=>$(s).value='');$('#s-abs').checked=$('#s-qs').checked=false;setup();draw();};
+ ['#s-sc','#s-nonew','#s-var','#s-sel','#s-reg','#s-a2','#s-abs','#s-qs'].forEach(s=>$(s).onchange=draw);
+ ['#s-ymin','#s-ymax','#s-kmax','#s-pmax','#s-mine'].forEach(s=>$(s).oninput=draw);
+ $('#s-reset').onclick=()=>{['#s-ymin','#s-ymax','#s-kmax','#s-pmax'].forEach(s=>$(s).value='');['#s-var','#s-sel','#s-reg','#s-a2'].forEach(s=>$(s).value='');$('#s-abs').checked=$('#s-qs').checked=false;draw();};
+ setup();draw();
 }
 </script>
 </body>
