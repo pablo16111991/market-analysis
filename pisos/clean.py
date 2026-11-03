@@ -9,7 +9,7 @@ COLS = ["id", "url", "state", "in_scope", "price_first", "price_last", "price_ch
         "eur_m2", "rooms", "bathrooms", "surface", "floor", "subtype", "exterior", "antiquity", "conservation",
         "orientation", "energy", "energy_kwh", "co2", "construction", "ground_surface", "locality", "neighborhood", "municipality", "zone", "lat", "lon", "client_type", "client_alias",
         "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "okupa_txt", "nuda_txt", "a_reformar", "seccion", "renta_idx_seccion", "renta_idx", "nivel_zona", "publication_date", "first_seen",
-        "last_seen", "days_listed", "runs_seen", "dup_n", "dup_group", "desc_start"]
+        "last_seen", "days_listed", "runs_seen", "dup_n", "dup_group", "plantilla", "desc_start"]
 
 
 RE_OKUPA = re.compile(r"okup|ocupaci[oó]n ilegal|ocupantes ilegales|con los ocupantes|sin posesi[oó]n", re.I)
@@ -182,18 +182,32 @@ def build(sid, scope):
         r["renta_idx"] = round(median(g)) if g else None
         r["nivel_zona"] = nivel(r["renta_idx"])
         r["in_scope"] = in_scope(r, scope)
-    # Duplicados: el mismo piso publicado varias veces (misma agencia o distintas). Mismo punto (~10 m), superficie,
-    # habitaciones, baños y planta, y precio a menos de un 1 % entre sí (se encadena de menor a mayor precio).
+    # Duplicados: el mismo piso publicado varias veces (misma agencia o distintas; Fotocasa desplaza las coordenadas
+    # de cada anuncio, así que no sirven solas). Se unen (union-find) los anuncios que cumplan cualquiera de:
+    #  A) mismo punto (~10 m), superficie, habitaciones, baños, planta y subtipo, y precio a menos de un 1 %.
+    #  B) mismo barrio, precio exacto, superficie, habitaciones, baños y subtipo, si son 3 o más anuncios
+    #     (varios pisos idénticos en un barrio no es casualidad: es el mismo piso repetido) o si es un par de la misma agencia.
+    parent = {r["id"]: r["id"] for r in recs}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(ids):
+        for i in ids[1:]:
+            parent[find(i)] = find(ids[0])
+
     def kgeo(r):
         la, lo = num(r["lat"]), num(r["lon"])
-        return (round(la, 4) if la else None, round(lo, 4) if lo else None, r["surface"], r["rooms"], r["bathrooms"], r["floor"], r["subtype"])
+        return (round(la, 4), round(lo, 4), r["surface"], r["rooms"], r["bathrooms"], r["floor"], r["subtype"]) if la and lo else None
     groups = defaultdict(list)
     for r in recs:
-        groups[kgeo(r)].append(r)
-    for r in recs:
-        r["dup_n"], r["dup_group"] = 1, r["id"]
+        if kgeo(r):
+            groups[kgeo(r)].append(r)
     for g in groups.values():
-        if len(g) < 2 or g[0]["lat"] in ("", None):
+        if len(g) < 2:
             continue
         g.sort(key=lambda r: r["price_last"])
         cl = [[g[0]]]
@@ -203,10 +217,22 @@ def build(sid, scope):
             else:
                 cl.append([r])
         for c in cl:
-            # principal: el que sigue activo y, entre ellos, el de id más bajo
-            main = min(c, key=lambda r: (r["state"] != "activo", int(r["id"])))
-            for r in c:
-                r["dup_n"], r["dup_group"] = len(c), main["id"]
+            union([r["id"] for r in c])
+    brand = lambda r: " ".join(re.split(r"\s+-\s+", (r["client_alias"] or "").lower().strip())[0].split()[:2])
+    hood = defaultdict(list)
+    for r in recs:
+        hood[(r["locality"], r["neighborhood"] or r["municipality"], r["price_last"], r["surface"], r["rooms"], r["bathrooms"], r["subtype"])].append(r)
+    for g in hood.values():
+        if len(g) >= 3 or (len(g) == 2 and brand(g[0]) and brand(g[0]) == brand(g[1])):
+            union([r["id"] for r in g])
+    comp = defaultdict(list)
+    for r in recs:
+        comp[find(r["id"])].append(r)
+    for c in comp.values():
+        # principal: el que sigue activo y, entre ellos, el de id más bajo
+        main = min(c, key=lambda r: (r["state"] != "activo", int(r["id"])))
+        for r in c:
+            r["dup_n"], r["dup_group"], r["plantilla"] = len(c), main["id"], int(len(c) >= 10)
     # En ámbito solo entra el principal de cada grupo de duplicados
     for r in recs:
         if r["in_scope"] and r["dup_group"] != r["id"]:
