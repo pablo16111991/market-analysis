@@ -1,7 +1,5 @@
 name: scrape-pisos
 on:
-  schedule:
-    - cron: '17 7 * * *'   # cada día 07:17 UTC
   workflow_dispatch:
 permissions:
   contents: write

@@ -9,7 +9,7 @@ Objetivo común: ver por cuánto lo ponen (activos) y por cuánto se vende de ve
 Para un módulo nuevo: carpeta nueva con su yml, collect.py, clean.py y `data/{raw,clean}`, y copiar un workflow `scrape-<módulo>.yml`.
 
 ## Reglas comunes
-- Un workflow por módulo (`.github/workflows/scrape-second-hand.yml` 06:17 UTC y `scrape-pisos.yml` 07:17 UTC). Comparten `concurrency: repo-commits` (no corren a la vez) y cada uno solo hace commit de su carpeta.
+- Un workflow por módulo (`.github/workflows/scrape-second-hand.yml` y `scrape-pisos.yml`; sin cron de GitHub porque no disparaba: los lanzan dos tareas programadas diarias, 06:17 y 07:17 UTC, con `gh api ... dispatches`). Comparten `concurrency: repo-commits` (no corren a la vez) y cada uno solo hace commit de su carpeta.
 - Lo crudo (`<módulo>/data/raw`) solo se añade; nunca se edita ni se borra (salvo petición explícita de Pablo para regenerar). Todo lo derivado (`clean`) se rehace desde lo crudo.
 - Dos tipos de filtro: de descarga (irreversibles, mantenerlos amplios) y de ámbito `scope` (reversibles, marcan `in_scope`).
 - Si cambias un clean.py o extract.py, ejecútalo y revisa el CSV antes de subir.
