@@ -30,6 +30,9 @@ a{color:var(--ac);text-decoration:none}
 select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;border-radius:8px;padding:6px 8px;font-size:14px}
 .ctl{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
 .hide{display:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--card);color:var(--tx);border:1px solid #2a2e37;border-radius:16px;padding:5px 12px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--ac);border-color:var(--ac)}
 </style>
 </head>
 <body>
@@ -41,17 +44,28 @@ select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;bor
 </header>
 <main>
 <section id="pisos">
+ <div class="card" id="p-filters" style="margin-bottom:12px">
+  <div class="chips" id="p-chips"></div>
+  <div class="ctl" style="margin:8px 0 0">
+   <input id="f-pmax" type="number" placeholder="Precio máx €" step="10000" style="width:130px">
+   <input id="f-m2" type="number" placeholder="m² mín" style="width:90px">
+   <input id="f-rooms" type="number" placeholder="Hab. mín" style="width:90px">
+   <select id="p-mun"></select>
+   <label><input type="checkbox" id="p-pl"> sin plantilla</label>
+   <button class="tab" id="f-reset">Limpiar</button>
+   <span id="f-count" style="color:var(--mu);align-self:center"></span>
+  </div>
+  <div style="color:var(--mu);font-size:11px;margin-top:6px">Terraza, balcón, patio, trastero… salen del texto del anuncio (aproximado). Ascensor, parking, amueblado y exterior son datos de Fotocasa.</div>
+ </div>
  <div class="kpis" id="p-kpis"></div>
  <div class="grid">
   <div class="card"><h2>€/m² mediano por día (en ámbito)</h2><canvas id="p-ser"></canvas></div>
-  <div class="card"><h2>€/m² mediano por barrio (n≥5)</h2><canvas id="p-bar"></canvas></div>
+  <div class="card"><h2>€/m² mediano por barrio (n≥3)</h2><canvas id="p-bar"></canvas></div>
  </div>
  <div class="card" style="margin-bottom:12px"><h2>Mapa (color = €/m² frente a su barrio: verde barato, rojo caro)</h2><div id="map"></div></div>
  <div class="card"><h2>Oportunidades</h2>
   <div class="ctl">
    <select id="p-sort"><option value="rel">Más baratos que su barrio</option><option value="drop">Mayor bajada de precio</option><option value="days">Más días publicados</option></select>
-   <select id="p-mun"></select>
-   <label><input type="checkbox" id="p-pl"> ocultar plantilla</label>
   </div>
   <div class="scroll"><table id="p-tab"></table></div>
  </div>
@@ -94,28 +108,45 @@ fetch('data.json').then(r=>r.json()).then(D=>{
 }).catch(e=>{$('#gen').textContent='Error cargando datos: '+e.message});
 
 function initPisos(P){
- const k=P.kpis;
- kpis('#p-kpis',[['Activos en ámbito',fmt(k.activos)],['Nuevos hoy',fmt(k.nuevos_hoy)],['Con bajada de precio',fmt(k.bajadas)],
-  ['Retirados (acum.)',fmt(k.retirados)],['€/m² mediano',fmt(k.eur_m2)],['Precio mediano',eur(k.price)]]);
- chart('#p-ser',{type:'line',data:{labels:P.series.map(s=>s.date),datasets:[{label:'€/m²',data:P.series.map(s=>s.eur_m2),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
- const b=P.barrios.filter(x=>x.n>=5).sort((a,b)=>b.eur_m2-a.eur_m2);
- chart('#p-bar',{type:'bar',data:{labels:b.map(x=>x.name),datasets:[{data:b.map(x=>x.eur_m2),backgroundColor:'#4f8cff'}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false},});
- $('#p-bar').parentElement.style.height=Math.max(260,b.length*16+40)+'px';$('#p-bar').style.maxHeight='none';
- window.map=L.map('map').setView([41.43,2.2],11);
- L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
- P.rows.filter(r=>r.lat&&r.lon).forEach(r=>{const rel=r.rel??0,c=rel<=-10?'#34c759':rel>=10?'#ff5d5d':'#e0b341';
-  L.circleMarker([r.lat,r.lon],{radius:5,color:c,fillColor:c,fillOpacity:.7,weight:1}).addTo(map)
-   .bindPopup(`${r.barrio}<br>${eur(r.price)} · ${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²<br>${link(r.url,'Ver anuncio')}`);});
+ const FL=[['terraza','Terraza'],['balcon','Balcón'],['patio_jardin','Patio/jardín'],['ext','Exterior'],['ascensor','Ascensor'],['parking','Parking'],
+  ['trastero','Trastero'],['aire','Aire acond.'],['piscina','Piscina'],['luminoso','Luminoso'],['reformado','Reformado'],['amueblado','Amueblado'],
+  ['vista_mar','Vista al mar'],['urgente','Venta urgente']];
+ const on=new Set(), has=(r,k)=>k==='ext'?r.ext===1:r.f.includes(k);
+ $('#p-chips').innerHTML=FL.map(([k,l])=>`<span class="chip" data-k="${k}">${l}</span>`).join('');
+ document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const k=c.dataset.k;on.has(k)?on.delete(k):on.add(k);c.classList.toggle('on');redraw();});
  const muns=[...new Set(P.rows.map(r=>r.mun))].sort();
  $('#p-mun').innerHTML='<option value="">Todos los municipios</option>'+muns.map(m=>`<option>${m}</option>`).join('');
+ const med=a=>{a=a.filter(x=>x!=null).sort((x,y)=>x-y);return a.length?(a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2):null;};
+ window.map=L.map('map').setView([41.43,2.2],11);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+ const layer=L.layerGroup().addTo(map);
  const cols=[{k:'barrio',h:'Barrio',f:r=>link(r.url,r.barrio)},{k:'price',h:'Precio',f:r=>fmt(r.price)},{k:'m2',h:'m²',f:r=>fmt(r.m2)},
   {k:'eur_m2',h:'€/m²',f:r=>fmt(r.eur_m2)},{k:'rel',h:'vs barrio',f:r=>r.rel==null?'–':`<span class="${r.rel<0?'neg':'pos'}">${r.rel>0?'+':''}${r.rel}%</span>`},
   {k:'drop',h:'Bajada',f:r=>r.drop?fmt(r.drop,1)+'%':'–'},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'rooms',h:'Hab'}];
- const redraw=()=>{let r=P.rows.filter(x=>(!$('#p-mun').value||x.mun===$('#p-mun').value)&&!($('#p-pl').checked&&x.plantilla));
+ function redraw(){
+  const pmax=+$('#f-pmax').value||1e12, m2=+$('#f-m2').value||0, rm=+$('#f-rooms').value||0, mun=$('#p-mun').value, npl=$('#p-pl').checked;
+  const ok=r=>r.price<=pmax&&(r.m2||0)>=m2&&(r.rooms||0)>=rm&&(!mun||r.mun===mun)&&!(npl&&r.plantilla)&&[...on].every(k=>has(r,k));
+  const all=P.rows.filter(ok), act=all.filter(r=>r.a), ids=new Set(all.map(r=>r.id));
+  $('#f-count').textContent=`${fmt(act.length)} de ${fmt(P.rows.filter(r=>r.a).length)} pisos`;
+  kpis('#p-kpis',[['Activos (con filtros)',fmt(act.length)],['Nuevos hoy',fmt(act.filter(r=>r.new).length)],['Con bajada de precio',fmt(act.filter(r=>r.drop>0).length)],
+   ['Retirados (acum., sin filtros)',fmt(P.retirados)],['€/m² mediano',fmt(med(act.map(r=>r.eur_m2)))],['Precio mediano',eur(med(act.map(r=>r.price)))]]);
+  const dates=Object.keys(P.hist).sort();
+  chart('#p-ser',{type:'line',data:{labels:dates,datasets:[{label:'€/m²',data:dates.map(d=>med(P.hist[d].filter(x=>ids.has(x[0])).map(x=>x[1]))),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
+  const g={};act.forEach(r=>{(g[r.barrio]=g[r.barrio]||[]).push(r.eur_m2)});
+  const b=Object.entries(g).filter(([n,a])=>a.length>=3).map(([n,a])=>[n,med(a),a.length]).sort((x,y)=>y[1]-x[1]);
+  chart('#p-bar',{type:'bar',data:{labels:b.map(x=>`${x[0]} (${x[2]})`),datasets:[{data:b.map(x=>x[1]),backgroundColor:'#4f8cff'}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false}});
+  $('#p-bar').parentElement.style.height=Math.max(260,b.length*16+40)+'px';$('#p-bar').style.maxHeight='none';
+  layer.clearLayers();
+  act.filter(r=>r.lat&&r.lon).forEach(r=>{const rel=r.rel??0,c=rel<=-10?'#34c759':rel>=10?'#ff5d5d':'#e0b341';
+   L.circleMarker([r.lat,r.lon],{radius:5,color:c,fillColor:c,fillOpacity:.7,weight:1}).addTo(layer)
+    .bindPopup(`${r.barrio}<br>${eur(r.price)} · ${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²<br>${link(r.url,'Ver anuncio')}`);});
   const s=$('#p-sort').value;
-  r=[...r].sort((a,b)=>s==='rel'?(a.rel??99)-(b.rel??99):s==='drop'?(b.drop||0)-(a.drop||0):(b.days||0)-(a.days||0));
-  table('#p-tab',cols,r);};
- ['#p-sort','#p-mun','#p-pl'].forEach(s=>$(s).onchange=redraw);redraw();
+  table('#p-tab',cols,[...act].sort((a,b)=>s==='rel'?(a.rel??99)-(b.rel??99):s==='drop'?(b.drop||0)-(a.drop||0):(b.days||0)-(a.days||0)));
+ }
+ ['#p-sort','#p-mun','#p-pl'].forEach(s=>$(s).onchange=redraw);
+ ['#f-pmax','#f-m2','#f-rooms'].forEach(s=>$(s).oninput=redraw);
+ $('#f-reset').onclick=()=>{on.clear();document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));['#f-pmax','#f-m2','#f-rooms'].forEach(s=>$(s).value='');$('#p-mun').value='';$('#p-pl').checked=false;redraw();};
+ redraw();
 }
 
 function initSH(S){
