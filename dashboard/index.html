@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Market analysis</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#0f1115;--card:#181b22;--tx:#e8eaed;--mu:#9aa0a6;--ac:#4f8cff;--ok:#34c759;--bad:#ff5d5d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,sans-serif}
+header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid #2a2e37;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+header h1{font-size:15px;margin:0 8px 0 0}
+button.tab{background:var(--card);color:var(--tx);border:1px solid #2a2e37;border-radius:8px;padding:6px 14px;font-size:14px}
+button.tab.on{background:var(--ac);border-color:var(--ac)}
+#gen{margin-left:auto;color:var(--mu);font-size:12px}
+main{padding:12px;max-width:1200px;margin:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.kpi,.card{background:var(--card);border-radius:10px;padding:10px 12px}
+.kpi b{display:block;font-size:20px}.kpi span{color:var(--mu);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-bottom:12px}
+h2{font-size:14px;margin:0 0 8px;color:var(--mu);font-weight:600}
+canvas{max-height:260px}#map{height:340px;border-radius:8px}
+.scroll{overflow:auto;max-height:420px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid #2a2e37}
+th{position:sticky;top:0;background:var(--card);cursor:pointer;color:var(--mu)}
+td:first-child,th:first-child{text-align:left}
+a{color:var(--ac);text-decoration:none}
+.neg{color:var(--ok)}.pos{color:var(--bad)}
+select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;border-radius:8px;padding:6px 8px;font-size:14px}
+.ctl{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+<h1>Market analysis</h1>
+<button class="tab on" data-t="pisos">Pisos</button>
+<button class="tab" data-t="sh">Second-hand</button>
+<span id="gen"></span>
+</header>
+<main>
+<section id="pisos">
+ <div class="kpis" id="p-kpis"></div>
+ <div class="grid">
+  <div class="card"><h2>€/m² mediano por día (en ámbito)</h2><canvas id="p-ser"></canvas></div>
+  <div class="card"><h2>€/m² mediano por barrio (n≥5)</h2><canvas id="p-bar"></canvas></div>
+ </div>
+ <div class="card" style="margin-bottom:12px"><h2>Mapa (color = €/m² frente a su barrio: verde barato, rojo caro)</h2><div id="map"></div></div>
+ <div class="card"><h2>Oportunidades</h2>
+  <div class="ctl">
+   <select id="p-sort"><option value="rel">Más baratos que su barrio</option><option value="drop">Mayor bajada de precio</option><option value="days">Más días publicados</option></select>
+   <select id="p-mun"></select>
+   <label><input type="checkbox" id="p-pl"> ocultar plantilla</label>
+  </div>
+  <div class="scroll"><table id="p-tab"></table></div>
+ </div>
+</section>
+<section id="sh" class="hide">
+ <div class="ctl"><select id="s-prod"></select></div>
+ <div class="kpis" id="s-kpis"></div>
+ <div class="grid">
+  <div class="card"><h2>Piden (activos) vs se paga (vendidos/reservados)</h2><canvas id="s-cmp"></canvas></div>
+  <div class="card"><h2>Precio mediano de los activos por día</h2><canvas id="s-ser"></canvas></div>
+ </div>
+ <div class="card"><h2>Anuncios en ámbito</h2><div class="scroll"><table id="s-tab"></table></div></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $=s=>document.querySelector(s), fmt=(x,d=0)=>x==null?'–':Number(x).toLocaleString('es-ES',{maximumFractionDigits:d});
+const eur=x=>x==null?'–':fmt(x)+' €';
+const charts={};
+function chart(id,cfg){charts[id]&&charts[id].destroy();charts[id]=new Chart($(id),cfg);}
+Chart.defaults.color='#9aa0a6';Chart.defaults.borderColor='#2a2e37';
+function kpis(el,items){$(el).innerHTML=items.map(([l,v])=>`<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');}
+function table(el,cols,rows){
+ let sk=null,dir=1;
+ const draw=()=>{const r=sk==null?rows:[...rows].sort((a,b)=>((a[sk]??1e18)-(b[sk]??1e18))*dir);
+  $(el).innerHTML='<tr>'+cols.map(c=>`<th data-k="${c.k}">${c.h}</th>`).join('')+'</tr>'+
+  r.slice(0,300).map(x=>'<tr>'+cols.map(c=>`<td>${c.f?c.f(x):x[c.k]??'–'}</td>`).join('')+'</tr>').join('');
+  $(el).querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(typeof rows[0]?.[k]==='string')return;dir=sk===k?-dir:1;sk=k;draw();});};
+ draw();}
+const link=(u,t)=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
+
+fetch('data.json').then(r=>r.json()).then(D=>{
+ $('#gen').textContent='Actualizado '+D.generated;
+ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  ['pisos','sh'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
+  if(b.dataset.t==='pisos'&&window.map)setTimeout(()=>map.invalidateSize(),50);});
+ initPisos(D.pisos);initSH(D.sh);
+});
+
+function initPisos(P){
+ const k=P.kpis;
+ kpis('#p-kpis',[['Activos en ámbito',fmt(k.activos)],['Nuevos hoy',fmt(k.nuevos_hoy)],['Con bajada de precio',fmt(k.bajadas)],
+  ['Retirados (acum.)',fmt(k.retirados)],['€/m² mediano',fmt(k.eur_m2)],['Precio mediano',eur(k.price)]]);
+ chart('#p-ser',{type:'line',data:{labels:P.series.map(s=>s.date),datasets:[{label:'€/m²',data:P.series.map(s=>s.eur_m2),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
+ const b=P.barrios.filter(x=>x.n>=5).sort((a,b)=>b.eur_m2-a.eur_m2);
+ chart('#p-bar',{type:'bar',data:{labels:b.map(x=>x.name),datasets:[{data:b.map(x=>x.eur_m2),backgroundColor:'#4f8cff'}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false},});
+ $('#p-bar').parentElement.style.height=Math.max(260,b.length*16+40)+'px';$('#p-bar').style.maxHeight='none';
+ window.map=L.map('map').setView([41.43,2.2],11);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+ P.rows.filter(r=>r.lat&&r.lon).forEach(r=>{const rel=r.rel??0,c=rel<=-10?'#34c759':rel>=10?'#ff5d5d':'#e0b341';
+  L.circleMarker([r.lat,r.lon],{radius:5,color:c,fillColor:c,fillOpacity:.7,weight:1}).addTo(map)
+   .bindPopup(`${r.barrio}<br>${eur(r.price)} · ${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²<br>${link(r.url,'Ver anuncio')}`);});
+ const muns=[...new Set(P.rows.map(r=>r.mun))].sort();
+ $('#p-mun').innerHTML='<option value="">Todos los municipios</option>'+muns.map(m=>`<option>${m}</option>`).join('');
+ const cols=[{k:'barrio',h:'Barrio',f:r=>link(r.url,r.barrio)},{k:'price',h:'Precio',f:r=>fmt(r.price)},{k:'m2',h:'m²',f:r=>fmt(r.m2)},
+  {k:'eur_m2',h:'€/m²',f:r=>fmt(r.eur_m2)},{k:'rel',h:'vs barrio',f:r=>r.rel==null?'–':`<span class="${r.rel<0?'neg':'pos'}">${r.rel>0?'+':''}${r.rel}%</span>`},
+  {k:'drop',h:'Bajada',f:r=>r.drop?fmt(r.drop,1)+'%':'–'},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'rooms',h:'Hab'}];
+ const redraw=()=>{let r=P.rows.filter(x=>(!$('#p-mun').value||x.mun===$('#p-mun').value)&&!($('#p-pl').checked&&x.plantilla));
+  const s=$('#p-sort').value;
+  r=[...r].sort((a,b)=>s==='rel'?(a.rel??99)-(b.rel??99):s==='drop'?(b.drop||0)-(a.drop||0):(b.days||0)-(a.days||0));
+  table('#p-tab',cols,r);};
+ ['#p-sort','#p-mun','#p-pl'].forEach(s=>$(s).onchange=redraw);redraw();
+}
+
+function initSH(S){
+ const names=Object.keys(S);
+ $('#s-prod').innerHTML=names.map(n=>`<option>${n}</option>`).join('');
+ const draw=()=>{const p=S[$('#s-prod').value];
+  kpis('#s-kpis',[['Activos en ámbito',fmt(p.n_active)],['Nuevos hoy',fmt(p.nuevos_hoy)],['Vendidos/reservados',fmt(p.vendidos)],
+   ['Piden (mediana)',eur(p.asks.p50)],['Se paga (mediana)',p.paid.n?eur(p.paid.p50):'sin datos']]);
+  const lab=['p25','p50','p75'];
+  chart('#s-cmp',{type:'bar',data:{labels:lab,datasets:[{label:`Piden (n=${p.asks.n})`,data:lab.map(l=>p.asks[l]),backgroundColor:'#4f8cff'},
+   {label:`Se paga (n=${p.paid.n})`,data:lab.map(l=>p.paid[l]),backgroundColor:'#34c759'}]}});
+  chart('#s-ser',{type:'line',data:{labels:p.series.map(s=>s.date),datasets:[{label:'Mediana €',data:p.series.map(s=>s.price),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
+  table('#s-tab',[{k:'title',h:'Anuncio',f:r=>link(r.url,(r.title||'').slice(0,50))},{k:'state',h:'Estado'},{k:'price',h:'Precio',f:r=>fmt(r.price)},
+   {k:'days',h:'Días',f:r=>fmt(r.days)},{k:'chg',h:'Cambios',f:r=>fmt(r.chg)},{k:'views_d',h:'Visitas/día',f:r=>fmt(r.views_d,1)},
+   {k:'km',h:'km',f:r=>fmt(r.km)},{k:'year',h:'Año'},{k:'seller',h:'Vendedor'}],p.rows);};
+ $('#s-prod').onchange=draw;draw();
+}
+</script>
+</body>
+</html>
