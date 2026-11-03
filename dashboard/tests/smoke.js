@@ -19,7 +19,7 @@ try { parsed = JSON.parse(data); check(true, 'data.json es JSON valido'); } catc
 const w = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true }).window;
 w.Chart = function () { this.destroy = () => {}; }; w.Chart.defaults = {};
 const lg = { clearLayers() {}, addTo() { return this; } };
-w.L = { map: () => ({ setView() { return this; }, invalidateSize() {} }), tileLayer: () => ({ addTo() {} }),
+w.L = { map: () => ({ setView() { return this; }, invalidateSize() {}, fitBounds() {} }), tileLayer: () => ({ addTo() {} }),
   layerGroup: () => lg, circleMarker: () => ({ addTo() { return { bindPopup() {} }; } }) };
 w.fetch = () => Promise.resolve({ json: () => Promise.resolve(parsed) });
 const errors = [];
@@ -43,7 +43,7 @@ setTimeout(() => {
   check(cnt() === base, 'Limpiar restaura filtros');
   // valorador
   const bar = q('#v-bar'); check(bar.options.length > 10, 'valorador tiene barrios (' + bar.options.length + ')');
-  set('#v-m2', 70); set('#v-ask', 230000);
+  set('#v-bar', bar.options[5].value); set('#v-m2', 70); set('#v-ask', 230000);
   check(/Estimo/.test(T(q('#v-out'))), 'valorador da una estimacion');
   // comparador de pisos
   const key = [...q('#c-bar').options].map(o => o.value)[5]; set('#c-bar', key); set('#c-m2', 70); set('#c-price', 230000);
