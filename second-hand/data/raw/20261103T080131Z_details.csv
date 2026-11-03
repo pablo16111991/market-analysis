@@ -1,0 +1,9 @@
+run_id,product,fetched_at,id,condition,views,favorites,conversations,brand,model,year,km,attrs_json
+20261103T080131Z,kymco-k-xct-125,2026-11-03T08:01:55+00:00,4z480oyppljy,,1537,24,14,,,,,{}
+20261103T080131Z,triumph-trident-660,2026-11-03T08:02:39+00:00,x6qqpewerq6y,,41,2,0,Triumph,Trident 660,2021,31500,"{""color"": ""black"", ""model"": ""Trident 660"", ""km"": ""31500"", ""brand"": ""Triumph"", ""year"": ""2021"", ""motorbike_style"": ""naked""}"
+20261103T080131Z,kymco-super-dink-125,2026-11-03T08:05:08+00:00,pj94re7d206e,,547,12,5,,,,,{}
+20261103T080131Z,kymco-super-dink-125,2026-11-03T08:05:10+00:00,8z88d0401rz3,,153,4,1,Kymco,Super Dink 125,2014,45000,"{""color"": ""white"", ""model"": ""Super Dink 125"", ""year"": ""2014"", ""km"": ""45000"", ""motorbike_style"": ""maxi_scooter"", ""brand"": ""Kymco""}"
+20261103T080131Z,kymco-super-dink-125,2026-11-03T08:05:11+00:00,36e520rp1q6d,,22,3,1,Kymco,Super Dink 125,2020,10710,"{""color"": ""white"", ""model"": ""Super Dink 125"", ""year"": ""2020"", ""brand"": ""Kymco"", ""motorbike_style"": ""maxi_scooter"", ""km"": ""10710""}"
+20261103T080131Z,kymco-super-dink-125,2026-11-03T08:05:13+00:00,v6gp9wvlvn6e,,19,2,1,Kymco,Super Dink GT 125,,9245,"{""brand"": ""Kymco"", ""model"": ""Super Dink GT 125"", ""km"": ""9245"", ""motorbike_style"": ""scooter"", ""color"": ""white""}"
+20261103T080131Z,kymco-super-dink-125,2026-11-03T08:05:15+00:00,mzn3vk425yjn,,538,21,1,,,,,{}
+20261103T080131Z,kymco-super-dink-125,2026-11-03T08:05:16+00:00,wzvggv0e04zl,,483,8,5,Kymco,Super Dink GT 125,2022,,"{""brand"": ""Kymco"", ""model"": ""Super Dink GT 125"", ""year"": ""2022"", ""motorbike_style"": ""scooter"", ""color"": ""white""}"
