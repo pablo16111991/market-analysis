@@ -13,7 +13,8 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "dashboard", "site")
-PAID_STATES = ["vendido", "vendido_probable", "reservado"]
+# Pablo: un anuncio "borrado" casi seguro se vendio, asi que cuenta como vendido probable en el dashboard.
+PAID_STATES = ["vendido", "vendido_probable", "reservado", "borrado"]
 
 
 def num(x):
