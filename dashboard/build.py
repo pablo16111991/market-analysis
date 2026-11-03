@@ -113,7 +113,8 @@ def build_pisos():
     for r in sc.itertuples():
         m = med.get(r.neighborhood)
         rel = None if (pd.isna(r.eur_m2) or not m) else round((r.eur_m2 / m - 1) * 100, 1)
-        rows.append({"id": int(r.id), "a": int(r.state == "activo"), "new": int(r.first_seen == today),
+        rows.append({"id": int(r.id), "a": int(r.state == "activo"), "ret": int(r.state == "retirado"),
+                     "fs": r.first_seen, "ls": r.last_seen, "new": int(r.first_seen == today),
                      "url": r.url, "barrio": r.neighborhood, "mun": r.municipality,
                      "price": num(r.price_last), "eur_m2": num(r.eur_m2), "m2": num(r.surface),
                      "rooms": num(r.rooms), "drop": num(r.drop_pct), "days": num(r.days_listed),

@@ -62,6 +62,14 @@ select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;bor
   <div class="card"><h2>€/m² mediano por día (en ámbito)</h2><canvas id="p-ser"></canvas></div>
   <div class="card"><h2>€/m² mediano por barrio (n≥3)</h2><canvas id="p-bar"></canvas></div>
  </div>
+ <div class="card" style="margin-bottom:12px"><h2>Tendencia de ventas (retirados = vendidos o quitados por el dueño)</h2>
+  <div id="t-note" style="color:var(--mu);font-size:12px;margin-bottom:8px"></div>
+  <div class="kpis" id="t-kpis"></div>
+  <div class="grid" style="margin-bottom:0">
+   <div><canvas id="t-flow"></canvas></div>
+   <div><canvas id="t-rate"></canvas></div>
+  </div>
+ </div>
  <div class="card" style="margin-bottom:12px"><h2>Mapa (color = €/m² frente a su barrio: verde barato, rojo caro)</h2><div id="map"></div></div>
  <div class="card"><h2>Oportunidades</h2>
   <div class="ctl">
@@ -123,6 +131,22 @@ fetch('data.json').then(r=>r.json()).then(D=>{
  for(const f of [()=>initPisos(D.pisos),()=>initSH(D.sh)]){try{f()}catch(e){console.error(e);$('#gen').textContent+=' | error: '+e.message}}
 }).catch(e=>{$('#gen').textContent='Error cargando datos: '+e.message});
 
+function trend(all,dates,hist,ids){
+ const stock=dates.map(d=>hist[d].filter(x=>ids.has(x[0])).length), first=dates[0];
+ const lastD=dates[dates.length-1];
+ const ret=dates.map(d=>d===lastD?null:all.filter(r=>r.ret&&r.ls===d).length); // el último día aún no sabe quién desaparecerá mañana
+ const nue=dates.map(d=>d===first?null:all.filter(r=>r.fs===d).length);
+ const rate=dates.map((d,i)=>stock[i]&&ret[i]!=null?+(100*ret[i]/stock[i]).toFixed(2):null);
+ const ma=rate.map((_,i)=>{const w=rate.slice(Math.max(0,i-6),i+1).filter(x=>x!=null);return w.length>=3?+(w.reduce((a,b)=>a+b,0)/w.length).toFixed(2):null;});
+ const days=all.filter(r=>r.ret).map(r=>r.days).filter(x=>x!=null).sort((a,b)=>a-b);
+ const mdays=days.length?days[Math.floor(days.length/2)]:null;
+ const valid=rate.filter(x=>x!=null), avg=valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:null;
+ $('#t-note').textContent=dates.length<14?`Solo ${dates.length} días de datos: la tendencia será fiable con 3-4 semanas. El día 1 ("${first}") es la carga inicial y no cuenta como entradas nuevas. "Retirado" mezcla vendido y retirado por el dueño. Un día de retirados = último día que se vio el anuncio; el día más reciente no se muestra porque aún no se sabe quién desaparece.`:'"Retirado" mezcla vendido y retirado por el dueño. Un día de retirados = último día que se vio el anuncio.';
+ kpis('#t-kpis',[['Retirados (acum., filtrados)',fmt(all.filter(r=>r.ret).length)],['% retirado/día (media)',avg==null?'–':fmt(avg,2)+'%'],
+  ['Días en mercado (mediana retirados)',fmt(mdays)],['Stock activo hoy vs día 1',stock.length?fmt(stock[stock.length-1])+' / '+fmt(stock[0]):'–']]);
+ chart('#t-flow',{type:'bar',data:{labels:dates,datasets:[{label:'Nuevos',data:nue,backgroundColor:'#4f8cff'},{label:'Retirados',data:ret,backgroundColor:'#34c759'}]},options:{plugins:{title:{display:true,text:'Entradas vs retirados por día',color:'#9aa0a6'}}}});
+ chart('#t-rate',{type:'line',data:{labels:dates,datasets:[{label:'% retirado/día',data:rate,borderColor:'#34c759',tension:.2},{label:'media 7 días',data:ma,borderColor:'#e0b341',borderDash:[4,4],tension:.2}]},options:{plugins:{title:{display:true,text:'Tasa de retirada diaria (si baja, se vende menos)',color:'#9aa0a6'}}}});
+}
 function initPisos(P){
  const FL=[['terraza','Terraza'],['balcon','Balcón'],['patio_jardin','Patio/jardín'],['ext','Exterior'],['ascensor','Ascensor'],['parking','Parking'],
   ['trastero','Trastero'],['aire','Aire acond.'],['piscina','Piscina'],['luminoso','Luminoso'],['reformado','Reformado'],['amueblado','Amueblado'],
@@ -152,6 +176,7 @@ function initPisos(P){
   const b=Object.entries(g).filter(([n,a])=>a.length>=3).map(([n,a])=>[n,med(a),a.length]).sort((x,y)=>y[1]-x[1]);
   chart('#p-bar',{type:'bar',data:{labels:b.map(x=>`${x[0]} (${x[2]})`),datasets:[{data:b.map(x=>x[1]),backgroundColor:'#4f8cff'}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false}});
   $('#p-bar').parentElement.style.height=Math.max(260,b.length*16+40)+'px';$('#p-bar').style.maxHeight='none';
+  trend(all,dates,P.hist,ids);
   layer.clearLayers();
   act.filter(r=>r.lat&&r.lon).forEach(r=>{const rel=r.rel??0,c=rel<=-10?'#34c759':rel>=10?'#ff5d5d':'#e0b341';
    L.circleMarker([r.lat,r.lon],{radius:5,color:c,fillColor:c,fillOpacity:.7,weight:1}).addTo(layer)
