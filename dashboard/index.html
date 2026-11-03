@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Market analysis</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="vendor/leaflet.css">
 <style>
 :root{--bg:#0f1115;--card:#181b22;--tx:#e8eaed;--mu:#9aa0a6;--ac:#4f8cff;--ok:#34c759;--bad:#ff5d5d}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,sans-serif}
@@ -66,14 +66,14 @@ select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;bor
  <div class="card"><h2>Anuncios en ámbito</h2><div class="scroll"><table id="s-tab"></table></div></div>
 </section>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="vendor/chart.umd.js"></script>
+<script src="vendor/leaflet.js"></script>
 <script>
 const $=s=>document.querySelector(s), fmt=(x,d=0)=>x==null?'–':Number(x).toLocaleString('es-ES',{maximumFractionDigits:d});
 const eur=x=>x==null?'–':fmt(x)+' €';
 const charts={};
-function chart(id,cfg){charts[id]&&charts[id].destroy();charts[id]=new Chart($(id),cfg);}
-Chart.defaults.color='#9aa0a6';Chart.defaults.borderColor='#2a2e37';
+function chart(id,cfg){if(!window.Chart)return;charts[id]&&charts[id].destroy();charts[id]=new Chart($(id),cfg);}
+if(window.Chart){Chart.defaults.color='#9aa0a6';Chart.defaults.borderColor='#2a2e37';}
 function kpis(el,items){$(el).innerHTML=items.map(([l,v])=>`<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');}
 function table(el,cols,rows){
  let sk=null,dir=1;
@@ -90,8 +90,8 @@ fetch('data.json').then(r=>r.json()).then(D=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
   ['pisos','sh'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
   if(b.dataset.t==='pisos'&&window.map)setTimeout(()=>map.invalidateSize(),50);});
- initPisos(D.pisos);initSH(D.sh);
-});
+ for(const f of [()=>initPisos(D.pisos),()=>initSH(D.sh)]){try{f()}catch(e){console.error(e);$('#gen').textContent+=' | error: '+e.message}}
+}).catch(e=>{$('#gen').textContent='Error cargando datos: '+e.message});
 
 function initPisos(P){
  const k=P.kpis;
