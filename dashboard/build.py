@@ -134,6 +134,8 @@ def build_pisos():
             warn.append("alquilado")
         if int(r.plantilla or 0):
             warn.append("ficha repetida por agencias")
+        if r.days_listed is not None and r.days_listed > 730:
+            warn.append("lleva +2 años publicado (quizá ya no está)")
         if disc is not None and disc <= -30:
             warn.append("muy por debajo: revisar (error, defecto u oferta falsa)")
         if mdl["n_barrio"].get(price_model.barrio_key(r.neighborhood, r.municipality), 0) < 5:

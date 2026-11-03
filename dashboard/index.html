@@ -52,6 +52,17 @@ select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;bor
 .mini{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 .mc{background:var(--card);border-radius:10px;padding:10px;font-size:13px}.mc b{font-size:17px;display:block}
 details{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:12px}summary{cursor:pointer;color:var(--mu)}
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.nav a{background:var(--card);border:1px solid #2a2e37;border-radius:16px;padding:6px 12px;color:var(--tx);font-size:13px}
+details.tool{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px}
+details.tool>summary{font-size:16px;color:var(--tx);font-weight:600}details.tool small{color:var(--mu);font-weight:400}
+details[open].tool>summary{margin-bottom:10px}
+#sec-opp,#sec-val,#sec-comp,#sec-mkt{scroll-margin-top:64px}
+.oc{background:#10131a;border:1px solid #2a2e37;border-radius:12px;padding:10px 12px;font-size:13px}
+.oc .t{display:flex;justify-content:space-between;align-items:center;font-size:18px;font-weight:700}
+.badge{font-size:13px;border-radius:10px;padding:2px 8px;background:#12351f}.badge.pos{background:#3a1b1b}
+.oc .w{color:#e0b341;font-size:12px}.oc .m{color:var(--mu)}
+@media(max-width:600px){#p-filters input[type=number],#p-filters select{flex:1 1 45%;width:auto!important;min-width:0}}
 </style>
 </head>
 <body>
@@ -63,9 +74,32 @@ details{background:var(--card);border-radius:10px;padding:10px 12px;margin-botto
 </header>
 <main>
 <section id="pisos">
- <div class="card" style="margin-bottom:12px">
-  <h2 style="font-size:16px;color:var(--tx)">🏠 ¿Cuánto vale este piso?</h2>
-  <div class="q">
+<div class="nav"><a href="#sec-opp">🔎 Chollos</a><a href="#sec-val" data-open="sec-val">🏠 Valorar</a><a href="#sec-comp" data-open="sec-comp">💶 ¿Buen precio?</a><a href="#sec-mkt">📊 Mercado</a></div>
+ <div class="card" id="p-filters" style="margin-bottom:12px">
+  <div class="chips" id="p-chips"></div>
+  <div class="ctl" style="margin:8px 0 0">
+   <input id="f-pmax" type="number" placeholder="Precio máx €" step="10000" style="width:130px">
+   <input id="f-m2" type="number" placeholder="m² mín" style="width:90px">
+   <input id="f-rooms" type="number" placeholder="Hab. mín" style="width:90px">
+   <select id="p-mun"></select>
+   <label><input type="checkbox" id="p-pl"> sin plantilla</label>
+   <input id="f-disc" type="number" placeholder="Más barato que parecidos ≥ %" style="width:210px">
+   <label><input type="checkbox" id="f-nowarn" checked> ocultar dudosos (a reformar, alquilado, ≥30% bajo parecidos…)</label>
+   <button class="tab" id="f-reset">Limpiar</button>
+   <span id="f-count" style="color:var(--mu);align-self:center"></span>
+  </div>
+  <div style="color:var(--mu);font-size:11px;margin-top:6px">Terraza, balcón, patio, trastero… salen del texto del anuncio (aproximado). Ascensor, parking, amueblado y exterior son datos de Fotocasa.</div>
+ </div>
+ <div class="kpis" id="p-kpis"></div>
+ <div class="card" id="sec-opp" style="margin-bottom:12px"><h2>Oportunidades (precio vs pisos parecidos: mismo barrio/zona, m², planta, estado, extras)</h2>
+  <div class="ctl">
+   <select id="p-sort"><option value="disc">Mejor precio vs pisos parecidos</option><option value="rel">Más baratos que su barrio</option><option value="drop">Mayor bajada de precio</option><option value="days">Más días publicados</option></select>
+  </div>
+  <div id="p-cards" class="mini"></div>
+  <details style="margin-top:10px"><summary>Ver tabla completa</summary><div class="scroll"><table id="p-tab"></table></div></details>
+ </div>
+<details id="sec-val" class="tool"><summary>🏠 ¿Cuánto vale este piso? <small>(modelo de precios)</small></summary>
+<div class="q">
    <div><label>Barrio</label><select id="v-bar"></select></div>
    <div><label>m²</label><input id="v-m2" type="number" inputmode="numeric" placeholder="ej. 70"></div>
    <div><label>Habitaciones</label><input id="v-rooms" type="number" inputmode="numeric" value="3"></div>
@@ -81,26 +115,21 @@ details{background:var(--card);border-radius:10px;padding:10px 12px;margin-botto
   </div>
   <div class="ctl" id="v-ex" style="margin-top:10px"></div>
   <div id="v-out"></div>
- </div>
- <div class="card" id="p-filters" style="margin-bottom:12px">
-  <div class="chips" id="p-chips"></div>
-  <div class="ctl" style="margin:8px 0 0">
-   <input id="f-pmax" type="number" placeholder="Precio máx €" step="10000" style="width:130px">
-   <input id="f-m2" type="number" placeholder="m² mín" style="width:90px">
-   <input id="f-rooms" type="number" placeholder="Hab. mín" style="width:90px">
-   <select id="p-mun"></select>
-   <label><input type="checkbox" id="p-pl"> sin plantilla</label>
-   <input id="f-disc" type="number" placeholder="Más barato que parecidos ≥ %" style="width:210px">
-   <label><input type="checkbox" id="f-nowarn"> sin avisos (reformar, alquilado…)</label>
-   <button class="tab" id="f-reset">Limpiar</button>
-   <span id="f-count" style="color:var(--mu);align-self:center"></span>
+</details>
+<details id="sec-comp" class="tool"><summary>💶 ¿Es buen precio este piso? <small>(vs pisos parecidos)</small></summary>
+<div class="q">
+   <div><label>Barrio</label><select id="c-bar"></select></div>
+   <div><label>m²</label><input id="c-m2" type="number" inputmode="numeric" placeholder="ej. 70"></div>
+   <div><label>Precio que piden (€)</label><input id="c-price" class="big" type="number" inputmode="numeric" placeholder="ej. 235000"></div>
+   <div><label>Habitaciones (opcional)</label><input id="c-rooms" type="number" inputmode="numeric" placeholder="ej. 3"></div>
   </div>
-  <div style="color:var(--mu);font-size:11px;margin-top:6px">Terraza, balcón, patio, trastero… salen del texto del anuncio (aproximado). Ascensor, parking, amueblado y exterior son datos de Fotocasa.</div>
- </div>
- <div class="kpis" id="p-kpis"></div>
+  <div class="ctl" style="margin-top:10px" id="c-ex"></div>
+  <div id="c-out"></div>
+</details>
+<h2 id="sec-mkt" style="font-size:16px;color:var(--tx);margin:18px 0 8px">📊 Mercado</h2>
  <div class="grid">
   <div class="card"><h2>€/m² mediano por día (en ámbito)</h2><canvas id="p-ser"></canvas></div>
-  <div class="card"><h2>€/m² mediano por barrio (n≥3)</h2><canvas id="p-bar"></canvas></div>
+  <div class="card"><h2>€/m² mediano por barrio (n≥3)</h2><div class="ctl"><select id="p-bar-mode"><option value="top">€/m² barrios: los 15 más caros</option><option value="low">los 15 más baratos</option><option value="all">todos</option></select></div><div style="position:relative"><canvas id="p-bar"></canvas></div></div>
  </div>
  <div class="card" style="margin-bottom:12px"><h2>Tendencia de ventas (retirados = vendidos o quitados por el dueño)</h2>
   <div id="t-note" style="color:var(--mu);font-size:12px;margin-bottom:8px"></div>
@@ -111,23 +140,6 @@ details{background:var(--card);border-radius:10px;padding:10px 12px;margin-botto
   </div>
  </div>
  <div class="card" style="margin-bottom:12px"><h2>Mapa (color = €/m² frente a su barrio: verde barato, rojo caro)</h2><div id="map"></div></div>
- <div class="card"><h2>Oportunidades (precio vs pisos parecidos: mismo barrio/zona, m², planta, estado, extras)</h2>
-  <div class="ctl">
-   <select id="p-sort"><option value="disc">Mejor precio vs pisos parecidos</option><option value="rel">Más baratos que su barrio</option><option value="drop">Mayor bajada de precio</option><option value="days">Más días publicados</option></select>
-  </div>
-  <div class="scroll"><table id="p-tab"></table></div>
- </div>
-<div class="card" style="margin-top:12px">
-  <h2 style="font-size:16px;color:var(--tx)">💶 ¿Es buen precio este piso? (comparado con pisos parecidos)</h2>
-  <div class="q">
-   <div><label>Barrio</label><select id="c-bar"></select></div>
-   <div><label>m²</label><input id="c-m2" type="number" inputmode="numeric" placeholder="ej. 70"></div>
-   <div><label>Precio que piden (€)</label><input id="c-price" class="big" type="number" inputmode="numeric" placeholder="ej. 235000"></div>
-   <div><label>Habitaciones (opcional)</label><input id="c-rooms" type="number" inputmode="numeric" placeholder="ej. 3"></div>
-  </div>
-  <div class="ctl" style="margin-top:10px" id="c-ex"></div>
-  <div id="c-out"></div>
- </div>
 </section>
 <section id="sh" class="hide">
  <h2 style="font-size:18px;color:var(--tx)">¿Es buen precio?</h2>
@@ -184,6 +196,7 @@ function table(el,cols,rows){
  draw();}
 const link=(u,t)=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
 
+document.addEventListener('click',e=>{const a=e.target.closest('.nav a[data-open]');if(a){const d=document.getElementById(a.dataset.open);if(d)d.open=true;}});
 fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(D=>{
  $('#gen').textContent='Actualizado '+D.generated;
  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
@@ -191,6 +204,7 @@ fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(D=>{
   ['pisos','sh'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
   if(b.dataset.t==='pisos'&&window.map)setTimeout(()=>map.invalidateSize(),50);});
  for(const f of [()=>initVal(D.pisos),()=>initPisos(D.pisos),()=>initComp(D.pisos),()=>initSH(D.sh)]){try{f()}catch(e){console.error(e);$('#gen').textContent+=' | error: '+e.message}}
+if(location.hash==='#second-hand')document.querySelector('.tab[data-t="sh"]').click();
 }).catch(e=>{$('#gen').textContent='Error cargando datos: '+e.message});
 
 function trend(all,dates,hist,ids){
@@ -211,12 +225,12 @@ function trend(all,dates,hist,ids){
 }
 function initVal(P){
  const M=P.model,EX=[['terraza','Terraza'],['balcon','Balcón'],['patio_jardin','Patio/jardín'],['trastero','Trastero'],['aire','Aire acond.'],['piscina','Piscina'],['parking','Parking'],['luminoso','Luminoso'],['vista_mar','Vista al mar'],['amueblado','Amueblado'],['rented','Alquilado (con inquilino)']];
- const keys=Object.keys(M.barrio).sort((a,b)=>a.localeCompare(b)),lab=k=>{const [b,m]=k.split('|');return (b==='nan'?'(sin barrio)':b)+' · '+m;};
- $('#v-bar').innerHTML=keys.map(k=>`<option value="${k}">${lab(k)}</option>`).join('');
+ const keys=Object.keys(M.barrio).sort((a,b)=>a.localeCompare(b)),lab=k=>{const [b,m]=k.split('|');return b==='nan'?m+' (sin barrio)':b+' · '+m;};
+ $('#v-bar').innerHTML='<option value="">— elige barrio —</option>'+keys.map(k=>`<option value="${k}">${lab(k)}</option>`).join('');
  $('#v-ex').innerHTML=EX.map(([k,l])=>`<label><input type="checkbox" data-k="${k}"> ${l}</label>`).join('');
  function calc(){
   const m2=+$('#v-m2').value,key=$('#v-bar').value,out=$('#v-out');
-  if(!m2||m2<20){out.innerHTML='<div class="verdict v-none">Pon los m² y el barrio y te digo cuánto debería valer.</div>';return;}
+  if(!m2||m2<20||!key){out.innerHTML='<div class="verdict v-none">Pon los m² y el barrio y te digo cuánto debería valer.</div>';return;}
   const x={},ex=k=>document.querySelector(`#v-ex [data-k="${k}"]`).checked?1:0,flv=$('#v-floor').value,fl=flv===''?2:+flv,el=+$('#v-elev').value;
   x.lsurf=Math.log(m2);x.rooms=+$('#v-rooms').value||3;x.baths=+$('#v-baths').value||1;x.floor_known=flv===''?0:1;x.elev=el;x.floor=Math.min(fl,7);x.walkup_high=(1-el)*(fl>=3?1:0);
   x.ext=+$('#v-ext').value;EX.forEach(([k])=>{if(k!=='rented')x['f_'+k]=ex(k)});x.rented=ex('rented');
@@ -243,15 +257,15 @@ function initVal(P){
  calc();
 }
 function initComp(P){
- const seen={};P.rows.forEach(r=>{const k=(r.barrio||'')+'|'+r.mun;seen[k]=(r.barrio||'(sin barrio)')+' · '+r.mun;});
+ const seen={};P.rows.forEach(r=>{const k=(r.barrio||'')+'|'+r.mun;seen[k]=r.barrio?r.barrio+' · '+r.mun:r.mun+' (sin barrio)';});
  const keys=Object.keys(seen).sort((a,b)=>seen[a].localeCompare(seen[b]));
- $('#c-bar').innerHTML=keys.map(k=>`<option value="${k}">${seen[k]}</option>`).join('');
+ $('#c-bar').innerHTML='<option value="">— elige barrio —</option>'+keys.map(k=>`<option value="${k}">${seen[k]}</option>`).join('');
  const EX=[['terraza','Terraza'],['balcon','Balcón'],['ascensor','Ascensor'],['ext','Exterior'],['parking','Parking'],['trastero','Trastero']];
  $('#c-ex').innerHTML='<span style="color:var(--mu);align-self:center">Comparar solo con pisos que tengan:</span>'+EX.map(([k,l])=>`<label><input type="checkbox" data-k="${k}"> ${l}</label>`).join('')+'<label><input type="checkbox" id="c-npl" checked> sin fichas repetidas</label>';
  const has=(r,k)=>k==='ext'?r.ext===1:r.f.includes(k);
  function draw(){
   const out=$('#c-out'),m2=+$('#c-m2').value,price=+$('#c-price').value||null,rooms=+$('#c-rooms').value||null,key=$('#c-bar').value,mun=key.split('|')[1];
-  if(!m2||m2<20){out.innerHTML='<div class="verdict v-none">Pon el barrio y los m² (y el precio) y te digo si está bien de precio.</div>';return;}
+  if(!m2||m2<20||!key){out.innerHTML='<div class="verdict v-none">Pon el barrio y los m² (y el precio) y te digo si está bien de precio.</div>';return;}
   const need=[...document.querySelectorAll('#c-ex [data-k]:checked')].map(e=>e.dataset.k),npl=$('#c-npl').checked;
   const okx=r=>need.every(k=>has(r,k))&&!(npl&&r.plantilla)&&(!rooms||Math.abs((r.rooms||0)-rooms)<=1)&&r.eur_m2!=null&&r.m2;
   const pool=P.rows.filter(okx);let comps=[],desc='';
@@ -296,7 +310,8 @@ function initPisos(P){
  window.map=L.map('map').setView([41.43,2.2],11);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
  const layer=L.layerGroup().addTo(map);
- const cols=[{k:'barrio',h:'Barrio',f:r=>link(r.url,r.barrio||'(sin barrio)')+(r.warn&&r.warn.length?` <span title="${r.warn.join(' · ')}">⚠️</span>`:'')},{k:'disc',h:'vs parecidos',f:r=>r.disc==null?'–':`<span class="${r.disc<0?'neg':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`},{k:'fair',h:'Típico',f:r=>fmt(r.fair)},{k:'price',h:'Precio',f:r=>fmt(r.price)},{k:'m2',h:'m²',f:r=>fmt(r.m2)},
+ let ocN=12;
+ const cols=[{k:'barrio',h:'Zona',f:r=>link(r.url,r.barrio||r.mun)+(r.warn&&r.warn.length?` <span title="${r.warn.join(' · ')}">⚠️</span>`:'')},{k:'disc',h:'vs parecidos',f:r=>r.disc==null?'–':`<span class="${r.disc<0?'neg':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`},{k:'fair',h:'Típico',f:r=>fmt(r.fair)},{k:'price',h:'Precio',f:r=>fmt(r.price)},{k:'m2',h:'m²',f:r=>fmt(r.m2)},
   {k:'eur_m2',h:'€/m²',f:r=>fmt(r.eur_m2)},{k:'rel',h:'vs barrio',f:r=>r.rel==null?'–':`<span class="${r.rel<0?'neg':'pos'}">${r.rel>0?'+':''}${r.rel}%</span>`},
   {k:'drop',h:'Bajada',f:r=>r.drop?fmt(r.drop,1)+'%':'–'},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'rooms',h:'Hab'}];
  function redraw(){
@@ -308,23 +323,29 @@ function initPisos(P){
   kpis('#p-kpis',[['Activos (con filtros)',fmt(act.length)],['Nuevos hoy',fmt(act.filter(r=>r.new).length)],['Con bajada de precio',fmt(act.filter(r=>r.drop>0).length)],['≥10% más baratos que parecidos',fmt(act.filter(r=>r.disc!=null&&r.disc<=-10&&!(r.warn&&r.warn.length)).length)],
    ['Retirados (acum., sin filtros)',fmt(P.retirados)],['€/m² mediano',fmt(med(act.map(r=>r.eur_m2)))],['Precio mediano',eur(med(act.map(r=>r.price)))]]);
   const dates=Object.keys(P.hist).sort();
-  chart('#p-ser',{type:'line',data:{labels:dates,datasets:[{label:'€/m²',data:dates.map(d=>med(P.hist[d].filter(x=>ids.has(x[0])).map(x=>x[1]))),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
+  chart('#p-ser',{type:'line',data:{labels:dates,datasets:[{label:'€/m²',data:dates.map(d=>med(P.hist[d].filter(x=>ids.has(x[0])).map(x=>x[1]))),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}},scales:{y:{suggestedMin:2000,ticks:{callback:v=>fmt(v)}}}}});
   const g={};act.forEach(r=>{(g[r.barrio]=g[r.barrio]||[]).push(r.eur_m2)});
-  const b=Object.entries(g).filter(([n,a])=>a.length>=3).map(([n,a])=>[n,med(a),a.length]).sort((x,y)=>y[1]-x[1]);
-  chart('#p-bar',{type:'bar',data:{labels:b.map(x=>`${x[0]} (${x[2]})`),datasets:[{data:b.map(x=>x[1]),backgroundColor:'#4f8cff'}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false}});
-  $('#p-bar').parentElement.style.height=Math.max(260,b.length*16+40)+'px';$('#p-bar').style.maxHeight='none';
+  let b=Object.entries(g).filter(([n,a])=>a.length>=3).map(([n,a])=>[n,med(a),a.length]).sort((x,y)=>y[1]-x[1]);
+  const bm=$('#p-bar-mode').value;if(bm==='top')b=b.slice(0,15);else if(bm==='low')b=b.slice(-15);
+  $('#p-bar').parentElement.style.height=Math.max(260,b.length*22+30)+'px';$('#p-bar').style.maxHeight='none';
+  chart('#p-bar',{type:'bar',data:{labels:b.map(x=>`${x[0]} (${x[2]})`),datasets:[{data:b.map(x=>x[1]),backgroundColor:'#4f8cff'}]},options:{indexAxis:'y',plugins:{legend:{display:false}},maintainAspectRatio:false,scales:{y:{ticks:{font:{size:11},autoSkip:false,callback(v){const l=this.getLabelForValue(v);return l.length>24?l.slice(0,23)+'…':l}}}}}});
+  
   trend(all,dates,P.hist,ids);
   layer.clearLayers();
+  const pts=act.filter(r=>r.lat&&r.lon).map(r=>[r.lat,r.lon]);if(pts.length>1&&map.fitBounds)map.fitBounds(pts,{padding:[20,20]});
   act.filter(r=>r.lat&&r.lon).forEach(r=>{const rel=r.rel??0,c=rel<=-10?'#34c759':rel>=10?'#ff5d5d':'#e0b341';
    L.circleMarker([r.lat,r.lon],{radius:5,color:c,fillColor:c,fillOpacity:.7,weight:1}).addTo(layer)
-    .bindPopup(`${r.barrio}<br>${eur(r.price)} · ${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²<br>${link(r.url,'Ver anuncio')}`);});
+    .bindPopup(`${r.barrio||r.mun}<br>${eur(r.price)} · ${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²<br>${link(r.url,'Ver anuncio')}`);});
   const s=$('#p-sort').value;
-  table('#p-tab',cols,[...act].sort((a,b)=>s==='disc'?(a.disc??99)-(b.disc??99):s==='rel'?(a.rel??99)-(b.rel??99):s==='drop'?(b.drop||0)-(a.drop||0):(b.days||0)-(a.days||0)));
+  const srt=[...act].sort((a,b)=>s==='disc'?(a.disc??99)-(b.disc??99):s==='rel'?(a.rel??99)-(b.rel??99):s==='drop'?(b.drop||0)-(a.drop||0):(b.days||0)-(a.days||0));
+  table('#p-tab',cols,srt);
+  $('#p-cards').innerHTML=srt.slice(0,ocN).map(r=>`<div class="oc"><div class="t"><span>${eur(r.price)}</span>${r.disc==null?'':`<span class="badge ${r.disc<0?'':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`}</div><div>${fmt(r.m2)} m² · ${fmt(r.rooms)} hab · ${fmt(r.eur_m2)} €/m²</div><div class="m">${r.barrio||r.mun}${r.days!=null?' · '+fmt(r.days)+' días publicado':''}</div>${r.warn&&r.warn.length?`<div class="w">⚠️ ${r.warn.join(' · ')}</div>`:''}<div>${link(r.url,'Ver anuncio')}</div></div>`).join('')+(srt.length>ocN?`<div class="oc m" style="display:flex;align-items:center;justify-content:center"><button class="tab" id="oc-more">Ver ${Math.min(12,srt.length-ocN)} más (quedan ${fmt(srt.length-ocN)})</button></div>`:'');
+  const mb=$('#oc-more');if(mb)mb.onclick=()=>{ocN+=12;redraw();};
  }
- ['#p-sort','#p-mun','#p-pl'].forEach(s=>$(s).onchange=redraw);
- ['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).oninput=redraw);
- $('#f-nowarn').onchange=redraw;
- $('#f-reset').onclick=()=>{on.clear();document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).value='');$('#f-nowarn').checked=false;$('#p-mun').value='';$('#p-pl').checked=false;redraw();};
+ ['#p-sort','#p-mun','#p-pl','#p-bar-mode'].forEach(s=>$(s).onchange=()=>{ocN=12;redraw();});
+ ['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).oninput=()=>{ocN=12;redraw();});
+ $('#f-nowarn').onchange=()=>{ocN=12;redraw();};
+ $('#f-reset').onclick=()=>{on.clear();document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).value='');$('#f-nowarn').checked=true;$('#p-mun').value='';$('#p-pl').checked=false;redraw();};
  redraw();
 }
 
@@ -333,7 +354,8 @@ function wq(pairs,q){ // cuantil ponderado; pairs=[[valor,peso]]
  let c=0;for(const [v,w] of pairs){c+=w;if(c>=q*T-1e-9)return v;}return pairs[pairs.length-1][0];}
 function initSH(S){
  const names=Object.keys(S);let cur=names[0];
- const pretty=n=>n.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+ const NAMES={'kymco-k-xct-125':'Kymco K-XCT 125','kymco-super-dink-125':'Kymco Super Dink 125','nux-mg-30':'NUX MG-30','triumph-trident-660':'Triumph Trident 660','yamaha-tracer-7':'Yamaha Tracer 7'};
+ const pretty=n=>NAMES[n]||n.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
  const rowsP=()=>S[cur].rows;
  function prods(){
   $('#s-prods').innerHTML=names.map(n=>{const act=S[n].rows.filter(r=>r.sc&&r.state==='activo'),m=wq(act.map(r=>[r.price,1/r.dup]),.5);
@@ -346,7 +368,7 @@ function initSH(S){
  function setup(){
   const CL={new:'Nuevo',as_good_as_new:'Como nuevo',good:'Buen estado',fair:'Aceptable',has_given_it_all:'Lo ha dado todo'},cv=uniq('cond');
   if(cv.length){$('#s-cond').innerHTML='<option value="">Cualquier estado</option>'+cv.map(c=>`<option value="${c}">${CL[c]||c}</option>`).join('');$('#s-cond-l').textContent='Estado (según Wallapop)';}
-  else{$('#s-cond').innerHTML='<option value="">Cualquier estado</option><option value="_used">Usada</option><option value="_new">Parece nueva</option>';$('#s-cond-l').textContent='Estado (Wallapop no lo da en motos; lo deduzco del anuncio)';}
+  else{$('#s-cond').innerHTML='<option value="">Cualquier estado</option><option value="_used">Usada</option><option value="_new">Parece nueva</option>';$('#s-cond-l').textContent='Estado (deducido del anuncio)';}
   opt('#s-var','Todas',uniq('variant'));opt('#s-sel','Particular y tienda',uniq('seller'));opt('#s-reg','Toda España',uniq('region'));
   $('#s-a2').innerHTML='<option value="">Cualquiera</option><option value="1">Solo A2 (o desconocido)</option>';
   const hasY=rowsP().some(r=>r.year!=null);document.querySelectorAll('.yk').forEach(e=>e.classList.toggle('hide',!hasY));
