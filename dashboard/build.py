@@ -40,45 +40,87 @@ def daily_latest(raw_glob):
     return {f"{d[:4]}-{d[4:6]}-{d[6:]}": pd.read_csv(f) for d, f in by_day.items()}
 
 
+FLAG_RE = {
+    "terraza": r"(?<!sin )\bterraza",
+    "balcon": r"(?<!sin )\bbalc[oó]n",
+    "patio_jardin": r"(?<!sin )\b(patio|jard[ií]n)",
+    "trastero": r"(?<!sin )\btrastero",
+    "aire": r"aire acondicionado|a/a\b|climatizaci[oó]n",
+    "piscina": r"(?<!sin )\bpiscina",
+    "luminoso": r"luminos",
+    "reformado": r"reformad[oa]|rehabilitad[oa]",
+}
+
+
+def listing_flags(ids):
+    """Etiquetas por anuncio: texto de la descripcion (aproximado) + campos estructurados de Fotocasa."""
+    import re
+    rx = {k: re.compile(v) for k, v in FLAG_RE.items()}
+    last = {}
+    with open(os.path.join(ROOT, "pisos/data/raw/items.jsonl"), encoding="utf-8") as fh:
+        for line in fh:
+            d = json.loads(line)
+            if d["id"] in ids:
+                last[d["id"]] = d["item"]
+    det = {}
+    for f in sorted(glob.glob(os.path.join(ROOT, "pisos/data/raw/*_details.csv"))):
+        for r in pd.read_csv(f, usecols=["id", "features"]).itertuples():
+            det[r.id] = r.features
+    out = {}
+    for i in ids:
+        flags = set()
+        it = last.get(i)
+        if isinstance(it, str):
+            it = json.loads(it)
+        if it:
+            t = (it.get("description") or "").lower()
+            for k, r in rx.items():
+                if r.search(t):
+                    flags.add(k)
+            dyn = it.get("dynamicFeatures") or []
+            if "HAS_VIEW_TO_BEACH" in dyn:
+                flags.add("vista_mar")
+            if "IS_SELLING_URGENT" in dyn:
+                flags.add("urgente")
+        for x in json.loads(det[i]) if isinstance(det.get(i), str) else []:
+            if x["type"] == "ELEVATOR" and x["value"] == "YES":
+                flags.add("ascensor")
+            if x["type"] == "PARKING":
+                flags.add("parking")
+            if x["type"] == "FURNISHED" and x["value"] == "YES":
+                flags.add("amueblado")
+        out[i] = sorted(flags)
+    return out
+
+
 def build_pisos():
     c = pd.read_csv(os.path.join(ROOT, "pisos/data/clean/pisos-bcn-norte.csv"))
-    sc = c[c.in_scope == 1]
-    act = sc[sc.state == "activo"].copy()
+    sc = c[c.in_scope == 1].copy()
+    act = sc[sc.state == "activo"]
     ids = set(sc.id)
+    flags = listing_flags(ids)
 
-    series = []
+    # historico: por dia, [id, eur_m2] de los anuncios en ambito (el cliente filtra por id)
+    hist = {}
     for day, df in daily_latest(os.path.join(ROOT, "pisos/data/raw/*_search.csv")).items():
         df = df[df.id.isin(ids)]
         eur = (df.price / df.surface).where(df.surface > 0)
-        series.append({"date": day, "n": int(len(df)), "eur_m2": pct(eur, .5), "price": pct(df.price, .5)})
+        hist[day] = [[int(i), None if pd.isna(e) else int(round(e))] for i, e in zip(df.id, eur)]
 
-    grp = act.groupby("neighborhood")
-    barrios = []
-    med = {}
-    for name, g in grp:
-        med[name] = g.eur_m2.median()
-        barrios.append({"name": name, "mun": g.municipality.iloc[0], "n": int(len(g)),
-                        "eur_m2": num(g.eur_m2.median()), "price": num(g.price_last.median()),
-                        "renta": num(g.renta_idx.median())})
-    barrios.sort(key=lambda b: -b["n"])
-
+    med = act.groupby("neighborhood").eur_m2.median().to_dict()
     today = c.first_seen.max()
     rows = []
-    for r in act.itertuples():
+    for r in sc.itertuples():
         m = med.get(r.neighborhood)
         rel = None if (pd.isna(r.eur_m2) or not m) else round((r.eur_m2 / m - 1) * 100, 1)
-        rows.append({"id": int(r.id), "url": r.url, "barrio": r.neighborhood, "mun": r.municipality,
+        rows.append({"id": int(r.id), "a": int(r.state == "activo"), "new": int(r.first_seen == today),
+                     "url": r.url, "barrio": r.neighborhood, "mun": r.municipality,
                      "price": num(r.price_last), "eur_m2": num(r.eur_m2), "m2": num(r.surface),
                      "rooms": num(r.rooms), "drop": num(r.drop_pct), "days": num(r.days_listed),
                      "chg": num(r.price_changes), "plantilla": int(r.plantilla or 0), "rel": rel,
-                     "lat": num(r.lat), "lon": num(r.lon)})
-    return {
-        "kpis": {"activos": int(len(act)), "nuevos_hoy": int((act.first_seen == today).sum()),
-                 "bajadas": int((act.drop_pct > 0).sum()),
-                 "retirados": int((c.state == "retirado").sum()),
-                 "eur_m2": num(act.eur_m2.median()), "price": num(act.price_last.median())},
-        "series": series, "barrios": barrios, "rows": rows,
-    }
+                     "ext": int(r.exterior == 1) if not pd.isna(r.exterior) else None,
+                     "lat": num(r.lat), "lon": num(r.lon), "f": flags[r.id]})
+    return {"retirados": int((c.state == "retirado").sum()), "hist": hist, "rows": rows}
 
 
 def build_sh():
