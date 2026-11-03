@@ -9,7 +9,7 @@ COLS = ["id", "url", "state", "in_scope", "price_first", "price_last", "price_ch
         "eur_m2", "rooms", "bathrooms", "surface", "floor", "subtype", "exterior", "antiquity", "conservation",
         "orientation", "energy", "energy_kwh", "co2", "construction", "ground_surface", "locality", "neighborhood", "municipality", "zone", "lat", "lon", "client_type", "client_alias",
         "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "okupa_txt", "nuda_txt", "a_reformar", "seccion", "renta_idx_seccion", "renta_idx", "nivel_zona", "publication_date", "first_seen",
-        "last_seen", "days_listed", "runs_seen", "dup_n", "desc_start"]
+        "last_seen", "days_listed", "runs_seen", "dup_n", "dup_group", "desc_start"]
 
 
 RE_OKUPA = re.compile(r"okup|ocupaci[oó]n ilegal|ocupantes ilegales|con los ocupantes|sin posesi[oó]n", re.I)
@@ -140,7 +140,7 @@ def build(sid, scope):
             "price_first": prices[0], "price_last": prices[-1], "price_changes": changes,
             "drop_pct": round(100 * (prices[-1] - prices[0]) / prices[0], 1) if prices[0] else None,
             "eur_m2": round(prices[-1] / sur) if sur else None,
-            "first_seen": first["seen_at"][:10], "last_seen": last["seen_at"][:10], "runs_seen": len({r["run_id"] for r in rs}),
+            "first_seen": first["seen_at"][:10], "last_seen": last["seen_at"][:10], "runs_seen": len({r["seen_at"][:10] for r in rs}),
         })
         try:
             from datetime import date
@@ -182,18 +182,34 @@ def build(sid, scope):
         r["renta_idx"] = round(median(g)) if g else None
         r["nivel_zona"] = nivel(r["renta_idx"])
         r["in_scope"] = in_scope(r, scope)
-    key = lambda r: (r["price_last"], r["surface"], r["rooms"], r["neighborhood"], r["client_alias"])
-    from collections import Counter
-    cnt = Counter(key(r) for r in recs)
+    # Duplicados: el mismo piso publicado varias veces (misma agencia o distintas). Mismo punto (~10 m), superficie,
+    # habitaciones, baños y planta, y precio a menos de un 1 % entre sí (se encadena de menor a mayor precio).
+    def kgeo(r):
+        la, lo = num(r["lat"]), num(r["lon"])
+        return (round(la, 4) if la else None, round(lo, 4) if lo else None, r["surface"], r["rooms"], r["bathrooms"], r["floor"], r["subtype"])
+    groups = defaultdict(list)
     for r in recs:
-        r["dup_n"] = cnt[key(r)]
-    # Duplicados: de cada grupo solo entra en ámbito el de id más bajo (los demás, in_scope=0)
-    keep = {}
-    for r in sorted(recs, key=lambda r: int(r["id"])):
-        if r["in_scope"] and key(r) not in keep:
-            keep[key(r)] = r["id"]
+        groups[kgeo(r)].append(r)
     for r in recs:
-        if r["in_scope"] and keep[key(r)] != r["id"]:
+        r["dup_n"], r["dup_group"] = 1, r["id"]
+    for g in groups.values():
+        if len(g) < 2 or g[0]["lat"] in ("", None):
+            continue
+        g.sort(key=lambda r: r["price_last"])
+        cl = [[g[0]]]
+        for r in g[1:]:
+            if r["price_last"] <= cl[-1][-1]["price_last"] * 1.01:
+                cl[-1].append(r)
+            else:
+                cl.append([r])
+        for c in cl:
+            # principal: el que sigue activo y, entre ellos, el de id más bajo
+            main = min(c, key=lambda r: (r["state"] != "activo", int(r["id"])))
+            for r in c:
+                r["dup_n"], r["dup_group"] = len(c), main["id"]
+    # En ámbito solo entra el principal de cada grupo de duplicados
+    for r in recs:
+        if r["in_scope"] and r["dup_group"] != r["id"]:
             r["in_scope"] = 0
     recs.sort(key=lambda r: (r["state"], r["price_last"]))
     out = ROOT / "data/clean"
