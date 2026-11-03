@@ -110,12 +110,23 @@ def build_sh():
     return prods
 
 
+def clean_nan(o):
+    """NaN no es JSON valido: lo pasamos a null (el navegador no puede parsearlo)."""
+    if isinstance(o, float) and o != o:
+        return None
+    if isinstance(o, dict):
+        return {k: clean_nan(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [clean_nan(v) for v in o]
+    return o
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
-    data = {"generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-            "pisos": build_pisos(), "sh": build_sh()}
+    data = clean_nan({"generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+                      "pisos": build_pisos(), "sh": build_sh()})
     with open(os.path.join(OUT, "data.json"), "w", encoding="utf-8") as fh:
-        json.dump(data, fh, ensure_ascii=False, separators=(",", ":"))
+        json.dump(data, fh, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     shutil.copy(os.path.join(ROOT, "dashboard", "index.html"), os.path.join(OUT, "index.html"))
     print("ok", os.path.getsize(os.path.join(OUT, "data.json")) // 1024, "KB")
 
