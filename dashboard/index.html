@@ -33,6 +33,25 @@ select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;bor
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{background:var(--card);color:var(--tx);border:1px solid #2a2e37;border-radius:16px;padding:5px 12px;font-size:13px;cursor:pointer}
 .chip.on{background:var(--ac);border-color:var(--ac)}
+.prods{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.pc{background:var(--card);border:2px solid #2a2e37;border-radius:12px;padding:10px 14px;cursor:pointer;min-width:150px;flex:1}
+.pc.on{border-color:var(--ac);background:#1b2a47}.pc b{display:block;font-size:15px}.pc span{color:var(--mu);font-size:12px}
+.q{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.q label{display:block;color:var(--mu);font-size:12px;margin-bottom:4px}.q input,.q select{width:100%;font-size:16px;padding:10px}
+.big{font-size:20px;padding:12px!important;border-color:var(--ac)!important}
+.verdict{border-radius:14px;padding:16px;margin:12px 0;font-size:15px}
+.verdict h3{margin:0 0 6px;font-size:22px}
+.v-great{background:#12351f;border:1px solid #34c759}.v-good{background:#16311f;border:1px solid #6fcf8a}
+.v-ok{background:#1b2a47;border:1px solid #4f8cff}.v-high{background:#3a2e12;border:1px solid #e0b341}.v-bad{background:#3a1b1b;border:1px solid #ff5d5d}
+.v-none{background:var(--card);border:1px solid #2a2e37}
+.gauge{position:relative;height:18px;background:#2a2e37;border-radius:9px;margin:18px 0 4px}
+.gauge .band{position:absolute;top:0;bottom:0;background:#4f8cff88;border-radius:9px}
+.gauge .med{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff}
+.gauge .me{position:absolute;top:-7px;width:6px;height:32px;margin-left:-3px;background:#ffd24d;border-radius:3px;box-shadow:0 0 0 2px #0f1115}
+.gl{display:flex;justify-content:space-between;color:var(--mu);font-size:12px}
+.mini{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.mc{background:var(--card);border-radius:10px;padding:10px;font-size:13px}.mc b{font-size:17px;display:block}
+details{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:12px}summary{cursor:pointer;color:var(--mu)}
 </style>
 </head>
 <body>
@@ -79,29 +98,39 @@ select,input{background:var(--card);color:var(--tx);border:1px solid #2a2e37;bor
  </div>
 </section>
 <section id="sh" class="hide">
- <div class="card" style="margin-bottom:12px">
-  <div class="ctl"><select id="s-prod"></select>
-   <label><input type="checkbox" id="s-sc" checked> solo ámbito del módulo</label>
-   <label><input type="checkbox" id="s-nonew" checked> excluir nuevas</label></div>
-  <div class="ctl" id="s-fil">
-   <input id="s-ymin" type="number" placeholder="Año mín" style="width:90px">
-   <input id="s-ymax" type="number" placeholder="Año máx" style="width:90px">
-   <input id="s-kmax" type="number" placeholder="Km máx" style="width:100px">
-   <input id="s-pmax" type="number" placeholder="Precio máx" style="width:110px">
-   <select id="s-var"></select><select id="s-sel"></select><select id="s-reg"></select><select id="s-a2"></select>
-   <label><input type="checkbox" id="s-abs"> ABS</label>
-   <label><input type="checkbox" id="s-qs"> Quickshifter</label>
-   <button class="tab" id="s-reset">Limpiar</button><span id="s-count" style="color:var(--mu);align-self:center"></span>
+ <h2 style="font-size:18px;color:var(--tx)">¿Es buen precio?</h2>
+ <div class="prods" id="s-prods"></div>
+ <div class="card">
+  <h2 style="font-size:15px;color:var(--tx)">Cuéntame de la que estás mirando</h2>
+  <div class="q">
+   <div><label>Precio que piden (€)</label><input id="s-mine" class="big" type="number" inputmode="numeric" placeholder="ej. 5800"></div>
+   <div class="yk"><label>Año (opcional)</label><input id="s-year" type="number" inputmode="numeric" placeholder="ej. 2022"></div>
+   <div class="yk"><label>Kilómetros (opcional)</label><input id="s-km" type="number" inputmode="numeric" placeholder="ej. 15000"></div>
   </div>
-  <div class="ctl" style="margin:0"><input id="s-mine" type="number" placeholder="Precio de la que miras €" style="width:200px;border-color:var(--ac)">
-   <div id="s-verdict" style="align-self:center"></div></div>
  </div>
- <div class="kpis" id="s-kpis"></div>
- <div class="grid">
-  <div class="card"><h2>Distribución de precios: piden (azul) y se paga (verde)</h2><canvas id="s-cmp"></canvas></div>
-  <div class="card"><h2>Precio mediano de los anuncios filtrados por día</h2><canvas id="s-ser"></canvas></div>
- </div>
- <div class="card"><h2>Anuncios (con filtros)</h2><div class="scroll"><table id="s-tab"></table></div></div>
+ <div id="s-verdict"></div>
+ <div id="s-comps"></div>
+ <details><summary>Filtros avanzados</summary>
+  <div class="q" style="margin-top:10px">
+   <div><label>Variante</label><select id="s-var"></select></div>
+   <div><label>Vendedor</label><select id="s-sel"></select></div>
+   <div><label>Región</label><select id="s-reg"></select></div>
+   <div class="yk"><label>A2</label><select id="s-a2"></select></div>
+  </div>
+  <div class="ctl" style="margin-top:10px">
+   <label><input type="checkbox" id="s-sc" checked> solo motos de mi búsqueda (año/km del módulo)</label>
+   <label><input type="checkbox" id="s-nonew" checked> excluir nuevas</label>
+   <label class="yk"><input type="checkbox" id="s-abs"> con ABS</label>
+   <label class="yk"><input type="checkbox" id="s-qs"> con quickshifter</label>
+  </div>
+ </details>
+ <details><summary>Ver gráficos y todos los anuncios</summary>
+  <div class="grid" style="margin-top:10px">
+   <div class="card"><h2>Precios: piden (azul) y se pagan (verde)</h2><canvas id="s-cmp"></canvas></div>
+   <div class="card"><h2>Precio mediano por día</h2><canvas id="s-ser"></canvas></div>
+  </div>
+  <div class="scroll"><table id="s-tab"></table></div>
+ </details>
 </section>
 </main>
 <script src="vendor/chart.umd.js"></script>
@@ -122,7 +151,7 @@ function table(el,cols,rows){
  draw();}
 const link=(u,t)=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
 
-fetch('data.json').then(r=>r.json()).then(D=>{
+fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(D=>{
  $('#gen').textContent='Actualizado '+D.generated;
  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
@@ -194,53 +223,76 @@ function wq(pairs,q){ // cuantil ponderado; pairs=[[valor,peso]]
  pairs=pairs.filter(x=>x[0]!=null).sort((x,y)=>x[0]-y[0]);const T=pairs.reduce((s,x)=>s+x[1],0);if(!T)return null;
  let c=0;for(const [v,w] of pairs){c+=w;if(c>=q*T-1e-9)return v;}return pairs[pairs.length-1][0];}
 function initSH(S){
- const names=Object.keys(S);
- $('#s-prod').innerHTML=names.map(n=>`<option>${n}</option>`).join('');
+ const names=Object.keys(S);let cur=names[0];
+ const pretty=n=>n.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+ const rowsP=()=>S[cur].rows;
+ function prods(){
+  $('#s-prods').innerHTML=names.map(n=>{const act=S[n].rows.filter(r=>r.sc&&r.state==='activo'),m=wq(act.map(r=>[r.price,1/r.dup]),.5);
+   return `<div class="pc ${n===cur?'on':''}" data-n="${n}"><b>${pretty(n)}</b><span>${act.length} en venta · mediana ${eur(m)}</span></div>`}).join('');
+  document.querySelectorAll('.pc').forEach(e=>e.onclick=()=>{cur=e.dataset.n;['#s-mine','#s-year','#s-km'].forEach(s=>$(s).value='');
+   $('#s-abs').checked=$('#s-qs').checked=false;prods();setup();draw();});
+ }
  const opt=(el,first,vals)=>{$(el).innerHTML=`<option value="">${first}</option>`+vals.map(v=>`<option>${v}</option>`).join('');};
- const uniq=k=>[...new Set(S[$('#s-prod').value].rows.map(r=>r[k]).filter(x=>x!=null))].sort();
+ const uniq=k=>[...new Set(rowsP().map(r=>r[k]).filter(x=>x!=null))].sort();
  function setup(){
-  opt('#s-var','Todas las variantes',uniq('variant'));opt('#s-sel','Particular y tienda',uniq('seller'));
-  opt('#s-reg','Toda España',uniq('region'));$('#s-a2').innerHTML='<option value="">A2: cualquiera</option><option value="1">A2: sí (o desconocido)</option>';
-  const rr=S[$('#s-prod').value].rows,hasYear=rr.some(r=>r.year!=null);
-  ['#s-ymin','#s-ymax','#s-kmax','#s-abs','#s-qs','#s-a2'].forEach(s=>{const e=$(s);(e.closest('label')||e).classList.toggle('hide',!hasYear)});
-  $('#s-var').classList.toggle('hide',!hasYear);
+  opt('#s-var','Todas',uniq('variant'));opt('#s-sel','Particular y tienda',uniq('seller'));opt('#s-reg','Toda España',uniq('region'));
+  $('#s-a2').innerHTML='<option value="">Cualquiera</option><option value="1">Solo A2 (o desconocido)</option>';
+  const hasY=rowsP().some(r=>r.year!=null);document.querySelectorAll('.yk').forEach(e=>e.classList.toggle('hide',!hasY));
  }
+ const med=(L)=>wq(L,.5);
  function draw(){
-  const P=S[$('#s-prod').value],num=id=>+$(id).value||null;
-  const ymin=num('#s-ymin'),ymax=num('#s-ymax'),kmax=num('#s-kmax'),pmax=num('#s-pmax'),v=$('#s-var').value,se=$('#s-sel').value,re=$('#s-reg').value,a2=$('#s-a2').value;
-  const ok=r=>(!$('#s-sc').checked||r.sc)&&!($('#s-nonew').checked&&r.is_new)&&(!ymin||r.year>=ymin)&&(!ymax||r.year<=ymax)&&(!kmax||r.km<=kmax)
-   &&(!pmax||r.price<=pmax)&&(!v||r.variant===v)&&(!se||r.seller===se)&&(!re||r.region===re)&&(a2!=='1'||r.a2!==0)&&(!$('#s-abs').checked||r.abs)&&(!$('#s-qs').checked||r.qs);
-  const all=P.rows.filter(ok),act=all.filter(r=>r.state==='activo'),paid=all.filter(r=>r.paid),ids=new Set(all.map(r=>r.id));
+  const P=S[cur],mine=+$('#s-mine').value||null,yr=+$('#s-year').value||null,km=+$('#s-km').value||null;
+  const v=$('#s-var').value,se=$('#s-sel').value,re=$('#s-reg').value,a2=$('#s-a2').value;
+  const base=P.rows.filter(r=>(!$('#s-sc').checked||r.sc)&&!($('#s-nonew').checked&&r.is_new)&&(!v||r.variant===v)&&(!se||r.seller===se)&&(!re||r.region===re)
+   &&(a2!=='1'||r.a2!==0)&&(!$('#s-abs').checked||r.abs)&&(!$('#s-qs').checked||r.qs));
+  let comps=base,desc='todas las '+pretty(cur)+' que he visto';
+  if(yr||km){
+   for(const [dy,dk] of [[1,.4],[2,.7]]){
+    const c=base.filter(r=>(!yr||(r.year!=null&&Math.abs(r.year-yr)<=dy))&&(!km||(r.km!=null&&Math.abs(r.km-km)<=km*dk+2000)));
+    if(c.filter(r=>r.state==='activo').length>=6||dy===2&&c.filter(r=>r.state==='activo').length>=3){comps=c;
+     desc='parecidas'+(yr?` (año ${yr-dy}–${yr+dy}`:' (')+(km?`${yr?', ':''}${fmt(Math.max(0,km*(1-dk)-2000))}–${fmt(km*(1+dk)+2000)} km`:'')+')';break;}
+   }
+   if(comps===base)desc='todas (hay pocas parecidas en año/km)';
+  }
+  const act=comps.filter(r=>r.state==='activo'&&r.price!=null),paid=comps.filter(r=>r.paid);
   const A=act.map(r=>[r.price,1/r.dup]),D=paid.map(r=>[r.final??r.price,1/r.dup]);
-  const q=(L,x)=>wq(L,x);
-  $('#s-count').textContent=`${act.length} activos · ${paid.length} vendidos/reservados/borrados`;
-  const n=(L)=>L.filter(x=>x[0]!=null).length;
-  kpis('#s-kpis',[['Activos',fmt(act.length)],['Nuevos hoy',fmt(act.filter(r=>r.new).length)],['Vendidos/reserv./borrados',fmt(paid.length)],
-   ['Piden p25 / p50 / p75',[.25,.5,.75].map(x=>fmt(q(A,x))).join(' / ')],['Se paga p25 / p50 / p75',n(D)>=3?[.25,.5,.75].map(x=>fmt(q(D,x))).join(' / '):'pocos datos (n='+n(D)+')']]);
-  const mine=+$('#s-mine').value;
-  if(mine&&n(A)){
-   const tot=A.reduce((s,x)=>s+x[1],0),below=A.filter(x=>x[0]<mine).reduce((s,x)=>s+x[1],0),pct=Math.round(100*below/tot);
-   const m=q(A,.5),d=Math.round((mine/m-1)*100),dd=n(D)>=3?Math.round((mine/q(D,.5)-1)*100):null;
-   const vd=pct<=25?['Barato','neg']:pct<=50?['Por debajo de la mediana','neg']:pct<=75?['Normal / algo alto','']:['Caro','pos'];
-   $('#s-verdict').innerHTML=`<b class="${vd[1]}">${vd[0]}</b> · más barato que el ${100-pct}% de los activos · ${d>0?'+':''}${d}% vs mediana de lo que piden`+(dd!=null?` · ${dd>0?'+':''}${dd}% vs lo que se paga`:'')+`<br><span style="color:var(--mu);font-size:12px">n=${n(A)} activos${n(A)<10?' (orientativo, pocos datos)':''}</span>`;
-  } else $('#s-verdict').textContent=mine?'Sin datos con estos filtros':'Escribe un precio para valorarlo';
-  const vals=[...A,...D].map(x=>x[0]).filter(x=>x!=null);
+  const V=$('#s-verdict');
+  if(act.length<3){V.innerHTML=`<div class="verdict v-none"><h3>Pocos datos 🤷</h3>Solo hay ${act.length} anuncios con esos datos. Prueba a quitar el año o los km, o abre "Filtros avanzados".</div>`;}
+  else{
+   const p5=wq(A,.05),p25=wq(A,.25),p50=wq(A,.5),p75=wq(A,.75),p95=wq(A,.95);
+   const lo=Math.min(p5,mine??p5)*.95,hi=Math.max(p95,mine??p95)*1.05,pos=x=>((x-lo)/(hi-lo)*100).toFixed(1)+'%';
+   const tot=A.reduce((s,x)=>s+x[1],0);let head='',cls='v-none',txt='';
+   if(mine){
+    const pct=Math.round(100*A.filter(x=>x[0]<mine).reduce((s,x)=>s+x[1],0)/tot),dif=Math.round((mine/p50-1)*100);
+    [cls,head]=pct<=20?['v-great','Muy buen precio 🔥']:pct<=45?['v-good','Buen precio 👍']:pct<=65?['v-ok','Precio normal 👌']:pct<=85?['v-high','Algo cara 🤔']:['v-bad','Cara ❌'];
+    const de10=Math.max(0,Math.min(10,Math.round(pct/10)));
+    txt=`De cada 10 ${desc.startsWith('parecidas')?'parecidas':'motos'} en venta, <b>${de10}</b> ${de10===1?'pide':'piden'} menos que tú. Está un <b>${Math.abs(dif)}% ${dif<0?'por debajo':'por encima'}</b> del precio típico (${eur(p50)}).`;
+   } else {head='Así está el mercado 📊';txt='Escribe arriba el precio de la que miras y te digo si es buen precio.';}
+   const dpaid=D.length>=3?`<br>Lo que se han llevado de verdad (vendidas/borradas): sobre <b>${eur(med(D))}</b> (${D.length} casos).`:'<br><span style="color:var(--mu)">Aún hay pocas vendidas para comparar con lo que se paga.</span>';
+   V.innerHTML=`<div class="verdict ${cls}"><h3>${head}</h3>${txt}
+    <div class="gauge"><div class="band" style="left:${pos(p25)};width:calc(${pos(p75)} - ${pos(p25)})"></div><div class="med" style="left:${pos(p50)}"></div>${mine?`<div class="me" style="left:${pos(mine)}"></div>`:''}</div>
+    <div class="gl"><span>${fmt(lo)} €</span><span>zona normal (azul) · raya blanca = típico${mine?' · amarillo = la tuya':''}</span><span>${fmt(hi)} €</span></div>
+    <div style="margin-top:10px">Lo normal está entre <b>${eur(p25)}</b> y <b>${eur(p75)}</b>. Comparo con ${act.length} anuncios: ${desc}.${dpaid}</div>
+    <div style="color:var(--mu);font-size:12px;margin-top:6px">Ojo: es lo que piden; casi siempre se puede negociar algo.</div></div>`;
+  }
+  const near=[...act].sort((a,b)=>mine?Math.abs(a.price-mine)-Math.abs(b.price-mine):a.price-b.price).slice(0,6);
+  const gone=[...paid].sort((a,b)=>mine?Math.abs((a.final??a.price)-mine)-Math.abs((b.final??b.price)-mine):0).slice(0,4);
+  const card=r=>`<div class="mc"><b>${eur(r.final??r.price)}</b>${[r.year,r.km!=null?fmt(r.km)+' km':null,r.region].filter(Boolean).join(' · ')||'–'}<br>${link(r.url,(r.title||'ver anuncio').slice(0,38))}</div>`;
+  $('#s-comps').innerHTML=(near.length?`<h2 style="margin-top:8px">${mine?'Las más parecidas en precio':'Las más baratas'} que hay a la venta</h2><div class="mini">${near.map(card).join('')}</div>`:'')+
+   (gone.length?`<h2 style="margin-top:14px">Ya no están (vendidas o borradas)</h2><div class="mini">${gone.map(card).join('')}</div>`:'');
+  // detalle
+  const ids=new Set(comps.map(r=>r.id)),vals=[...A,...D].map(x=>x[0]).filter(x=>x!=null);
   if(vals.length){const lo=Math.min(...vals),hi=Math.max(...vals),k=10,w=(hi-lo)/k||1,lab=[],ca=Array(k).fill(0),cd=Array(k).fill(0);
-   for(let i=0;i<k;i++)lab.push(fmt(lo+i*w)+'–'+fmt(lo+(i+1)*w));
-   const bin=x=>Math.min(k-1,Math.floor((x-lo)/w));A.forEach(x=>x[0]!=null&&ca[bin(x[0])]++);D.forEach(x=>x[0]!=null&&cd[bin(x[0])]++);
-   chart('#s-cmp',{type:'bar',data:{labels:lab,datasets:[{label:'Piden',data:ca,backgroundColor:'#4f8cff'},{label:'Se paga',data:cd,backgroundColor:'#34c759'}]},options:{scales:{x:{ticks:{maxRotation:60}}}}});}
-  else chart('#s-cmp',{type:'bar',data:{labels:[],datasets:[]}});
-  const dates=Object.keys(P.hist).sort(),md=a=>{const L=a.filter(x=>x!=null);return L.length?wq(L.map(x=>[x,1]),.5):null;};
-  chart('#s-ser',{type:'line',data:{labels:dates,datasets:[{label:'Mediana €',data:dates.map(d=>md(P.hist[d].filter(x=>ids.has(x[0])).map(x=>x[1]))),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
+   for(let i=0;i<k;i++)lab.push(fmt(lo+i*w));const bin=x=>Math.min(k-1,Math.floor((x-lo)/w));A.forEach(x=>ca[bin(x[0])]++);D.forEach(x=>cd[bin(x[0])]++);
+   chart('#s-cmp',{type:'bar',data:{labels:lab,datasets:[{label:'Piden',data:ca,backgroundColor:'#4f8cff'},{label:'Se paga',data:cd,backgroundColor:'#34c759'}]}});}
+  const dates=Object.keys(P.hist).sort();
+  chart('#s-ser',{type:'line',data:{labels:dates,datasets:[{label:'Mediana €',data:dates.map(d=>{const L=P.hist[d].filter(x=>ids.has(x[0])&&x[1]!=null).map(x=>[x[1],1]);return L.length?med(L):null}),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
   table('#s-tab',[{k:'title',h:'Anuncio',f:r=>link(r.url,(r.title||'').slice(0,50))},{k:'state',h:'Estado'},{k:'price',h:'Precio',f:r=>fmt(r.price)},
-   {k:'year',h:'Año'},{k:'km',h:'km',f:r=>fmt(r.km)},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'chg',h:'Cambios',f:r=>fmt(r.chg)},
-   {k:'views_d',h:'Vis./día',f:r=>fmt(r.views_d,1)},{k:'seller',h:'Vendedor'},{k:'region',h:'Región'}],[...all].sort((a,b)=>(a.price??1e9)-(b.price??1e9)));
+   {k:'year',h:'Año'},{k:'km',h:'km',f:r=>fmt(r.km)},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'seller',h:'Vendedor'},{k:'region',h:'Región'}],[...comps].sort((a,b)=>(a.price??1e9)-(b.price??1e9)));
  }
- $('#s-prod').onchange=()=>{['#s-ymin','#s-ymax','#s-kmax','#s-pmax'].forEach(s=>$(s).value='');$('#s-abs').checked=$('#s-qs').checked=false;setup();draw();};
- ['#s-sc','#s-nonew','#s-var','#s-sel','#s-reg','#s-a2','#s-abs','#s-qs'].forEach(s=>$(s).onchange=draw);
- ['#s-ymin','#s-ymax','#s-kmax','#s-pmax','#s-mine'].forEach(s=>$(s).oninput=draw);
- $('#s-reset').onclick=()=>{['#s-ymin','#s-ymax','#s-kmax','#s-pmax'].forEach(s=>$(s).value='');['#s-var','#s-sel','#s-reg','#s-a2'].forEach(s=>$(s).value='');$('#s-abs').checked=$('#s-qs').checked=false;draw();};
- setup();draw();
+ ['#s-var','#s-sel','#s-reg','#s-a2','#s-sc','#s-nonew','#s-abs','#s-qs'].forEach(s=>$(s).onchange=draw);
+ ['#s-mine','#s-year','#s-km'].forEach(s=>$(s).oninput=draw);
+ prods();setup();draw();
 }
 </script>
 </body>
