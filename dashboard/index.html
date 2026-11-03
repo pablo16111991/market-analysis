@@ -127,6 +127,7 @@ details{background:var(--card);border-radius:10px;padding:10px 12px;margin-botto
    <div><label>Precio que piden (€)</label><input id="s-mine" class="big" type="number" inputmode="numeric" placeholder="ej. 5800"></div>
    <div class="yk"><label>Año (opcional)</label><input id="s-year" type="number" inputmode="numeric" placeholder="ej. 2022"></div>
    <div class="yk"><label>Kilómetros (opcional)</label><input id="s-km" type="number" inputmode="numeric" placeholder="ej. 15000"></div>
+   <div><label id="s-cond-l">Estado (según Wallapop)</label><select id="s-cond"></select></div>
   </div>
  </div>
  <div id="s-verdict"></div>
@@ -291,6 +292,9 @@ function initSH(S){
  const opt=(el,first,vals)=>{$(el).innerHTML=`<option value="">${first}</option>`+vals.map(v=>`<option>${v}</option>`).join('');};
  const uniq=k=>[...new Set(rowsP().map(r=>r[k]).filter(x=>x!=null))].sort();
  function setup(){
+  const CL={new:'Nuevo',as_good_as_new:'Como nuevo',good:'Buen estado',fair:'Aceptable',has_given_it_all:'Lo ha dado todo'},cv=uniq('cond');
+  if(cv.length){$('#s-cond').innerHTML='<option value="">Cualquier estado</option>'+cv.map(c=>`<option value="${c}">${CL[c]||c}</option>`).join('');$('#s-cond-l').textContent='Estado (según Wallapop)';}
+  else{$('#s-cond').innerHTML='<option value="">Cualquier estado</option><option value="_used">Usada</option><option value="_new">Parece nueva</option>';$('#s-cond-l').textContent='Estado (Wallapop no lo da en motos; lo deduzco del anuncio)';}
   opt('#s-var','Todas',uniq('variant'));opt('#s-sel','Particular y tienda',uniq('seller'));opt('#s-reg','Toda España',uniq('region'));
   $('#s-a2').innerHTML='<option value="">Cualquiera</option><option value="1">Solo A2 (o desconocido)</option>';
   const hasY=rowsP().some(r=>r.year!=null);document.querySelectorAll('.yk').forEach(e=>e.classList.toggle('hide',!hasY));
@@ -299,7 +303,8 @@ function initSH(S){
  function draw(){
   const P=S[cur],mine=+$('#s-mine').value||null,yr=+$('#s-year').value||null,km=+$('#s-km').value||null;
   const v=$('#s-var').value,se=$('#s-sel').value,re=$('#s-reg').value,a2=$('#s-a2').value;
-  const base=P.rows.filter(r=>(!$('#s-sc').checked||r.sc)&&!($('#s-nonew').checked&&r.is_new)&&(!v||r.variant===v)&&(!se||r.seller===se)&&(!re||r.region===re)
+  const cd=$('#s-cond').value,okc=r=>!cd||(cd==='_used'?!r.is_new:cd==='_new'?!!r.is_new:r.cond===cd);
+  const base=P.rows.filter(r=>(!$('#s-sc').checked||r.sc)&&!($('#s-nonew').checked&&r.is_new&&cd!=='_new')&&okc(r)&&(!v||r.variant===v)&&(!se||r.seller===se)&&(!re||r.region===re)
    &&(a2!=='1'||r.a2!==0)&&(!$('#s-abs').checked||r.abs)&&(!$('#s-qs').checked||r.qs));
   let comps=base,desc='todas las '+pretty(cur)+' que he visto';
   if(yr||km){
@@ -333,7 +338,7 @@ function initSH(S){
   }
   const near=[...act].sort((a,b)=>mine?Math.abs(a.price-mine)-Math.abs(b.price-mine):a.price-b.price).slice(0,6);
   const gone=[...paid].sort((a,b)=>mine?Math.abs((a.final??a.price)-mine)-Math.abs((b.final??b.price)-mine):0).slice(0,4);
-  const card=r=>`<div class="mc"><b>${eur(r.final??r.price)}</b>${[r.year,r.km!=null?fmt(r.km)+' km':null,r.region].filter(Boolean).join(' · ')||'–'}<br>${link(r.url,(r.title||'ver anuncio').slice(0,38))}</div>`;
+  const card=r=>`<div class="mc"><b>${eur(r.final??r.price)}</b>${[r.cond?({new:'Nuevo',as_good_as_new:'Como nuevo',good:'Buen estado',fair:'Aceptable',has_given_it_all:'Lo ha dado todo'}[r.cond]||r.cond):null,r.year,r.km!=null?fmt(r.km)+' km':null,r.region].filter(Boolean).join(' · ')||'–'}<br>${link(r.url,(r.title||'ver anuncio').slice(0,38))}</div>`;
   $('#s-comps').innerHTML=(near.length?`<h2 style="margin-top:8px">${mine?'Las más parecidas en precio':'Las más baratas'} que hay a la venta</h2><div class="mini">${near.map(card).join('')}</div>`:'')+
    (gone.length?`<h2 style="margin-top:14px">Ya no están (vendidas o borradas)</h2><div class="mini">${gone.map(card).join('')}</div>`:'');
   // detalle
@@ -343,10 +348,10 @@ function initSH(S){
    chart('#s-cmp',{type:'bar',data:{labels:lab,datasets:[{label:'Piden',data:ca,backgroundColor:'#4f8cff'},{label:'Se paga',data:cd,backgroundColor:'#34c759'}]}});}
   const dates=Object.keys(P.hist).sort();
   chart('#s-ser',{type:'line',data:{labels:dates,datasets:[{label:'Mediana €',data:dates.map(d=>{const L=P.hist[d].filter(x=>ids.has(x[0])&&x[1]!=null).map(x=>[x[1],1]);return L.length?med(L):null}),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}}}});
-  table('#s-tab',[{k:'title',h:'Anuncio',f:r=>link(r.url,(r.title||'').slice(0,50))},{k:'state',h:'Estado'},{k:'price',h:'Precio',f:r=>fmt(r.price)},
+  table('#s-tab',[{k:'title',h:'Anuncio',f:r=>link(r.url,(r.title||'').slice(0,50))},{k:'state',h:'Estado'},{k:'cond',h:'Condición'},{k:'price',h:'Precio',f:r=>fmt(r.price)},
    {k:'year',h:'Año'},{k:'km',h:'km',f:r=>fmt(r.km)},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'seller',h:'Vendedor'},{k:'region',h:'Región'}],[...comps].sort((a,b)=>(a.price??1e9)-(b.price??1e9)));
  }
- ['#s-var','#s-sel','#s-reg','#s-a2','#s-sc','#s-nonew','#s-abs','#s-qs'].forEach(s=>$(s).onchange=draw);
+ ['#s-var','#s-sel','#s-reg','#s-a2','#s-sc','#s-nonew','#s-abs','#s-qs','#s-cond'].forEach(s=>$(s).onchange=draw);
  ['#s-mine','#s-year','#s-km'].forEach(s=>$(s).oninput=draw);
  prods();setup();draw();
 }
