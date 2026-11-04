@@ -138,7 +138,7 @@ def clean_product(pid, allraw, extractor="moto", scope=None):
             "city": last["city"], "region": last.get("region"), "distance_km": dist(last), "created_at": last["created_at"][:10], "first_seen": first["seen_at"][:10],
             "last_seen": last["seen_at"][:10], "days_listed": days, "runs_seen": len({r["seen_at"][:10] for r in rows}),
             "views": (s or {}).get("views") or (d or {}).get("views"),
-            "favorites": (s or {}).get("favorites") or (d or {}).get("favorites"),
+            "favorites": ((s or {}).get("favorites") if (s or {}).get("favorites") not in (None, "", "0") else None) or (d or {}).get("favorites"),
             "desc_start": desc.replace("\n", " ")[:140],
         })
     # Duplicados: mismos título+precio+km+año (concesionarios que repiten el anuncio)
