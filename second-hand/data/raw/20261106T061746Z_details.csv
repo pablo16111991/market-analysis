@@ -1,0 +1,14 @@
+run_id,product,fetched_at,id,condition,views,favorites,conversations,brand,model,year,km,attrs_json
+20261106T061746Z,kymco-k-xct-125,2026-11-06T06:18:09+00:00,nz085n9k136o,,17,0,0,KYMCO,K-XCT 125,2014,15000,"{""color"": ""blue"", ""model"": ""K-XCT 125"", ""brand"": ""KYMCO"", ""km"": ""15000"", ""motorbike_style"": ""scooter"", ""year"": ""2014""}"
+20261106T061746Z,triumph-trident-660,2026-11-06T06:18:53+00:00,wzvg1wn407zl,,9,1,0,TRIUMPH,Trident 660  Triple Tribute Edition (2024),2024,800,"{""brand"": ""TRIUMPH"", ""model"": ""Trident 660  Triple Tribute Edition (2024)"", ""color"": ""white"", ""year"": ""2024"", ""km"": ""800"", ""motorbike_style"": ""naked""}"
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:02+00:00,nzxeoog4g762,,5,0,0,,,,,{}
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:03+00:00,qjwrkk2pok6o,,36,4,1,Kymco,DTX 125,2023,24300,"{""brand"": ""Kymco"", ""model"": ""DTX 125"", ""km"": ""24300"", ""year"": ""2023"", ""motorbike_style"": ""maxi_scooter"", ""color"": ""green""}"
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:05+00:00,8j38001xgyz9,,7,0,0,Kymco,Super Dink GT 125,2016,50,"{""brand"": ""Kymco"", ""model"": ""Super Dink GT 125"", ""km"": ""50"", ""motorbike_style"": ""scooter"", ""color"": ""black"", ""year"": ""2016""}"
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:07+00:00,0j28ppo45njy,,2,0,0,,,,,{}
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:09+00:00,4z48772e48jy,,3,0,0,,,,,{}
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:10+00:00,w67v11n4ow6x,,1,0,0,,,,,{}
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:12+00:00,nzxeoog42562,,4,0,0,,,,,{}
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:14+00:00,xzog59yq35j9,,114,2,2,Yamaha,X-Max 125,2025,,"{""brand"": ""Yamaha"", ""model"": ""X-Max 125"", ""year"": ""2025"", ""motorbike_style"": ""maxi_scooter"", ""color"": ""gray""}"
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:15+00:00,wzvg11d4eqzl,,4,0,0,,,,,{}
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:17+00:00,wzvgdkoqw1zl,,829,18,16,,,,,{}
+20261106T061746Z,kymco-super-dink-125,2026-11-06T06:21:19+00:00,pj9mo7vk7v6e,,2106,18,4,,,,,{}
