@@ -1,0 +1,7 @@
+run_id,product,fetched_at,id,condition,views,favorites,conversations,brand,model,year,km,attrs_json
+20261112T061812Z,kymco-k-xct-125,2026-11-12T06:18:36+00:00,wzyrm5d12x65,,11,0,0,Kymco,k-XCT,2015,23000,"{""brand"": ""Kymco"", ""model"": ""k-XCT"", ""km"": ""23000"", ""year"": ""2015"", ""motorbike_style"": ""scooter"", ""color"": ""black""}"
+20261112T061812Z,kymco-k-xct-125,2026-11-12T06:18:38+00:00,vjrenr7dg8zk,,13,1,1,Kymco,K-XCT 125,,13700,"{""brand"": ""Kymco"", ""model"": ""K-XCT 125"", ""km"": ""13700"", ""motorbike_style"": ""scooter"", ""color"": ""black""}"
+20261112T061812Z,nux-mg-30,2026-11-12T06:19:54+00:00,36e53xmd086d,as_good_as_new,6,1,0,,,,,"{""condition"": ""as_good_as_new""}"
+20261112T061812Z,yamaha-tracer-7,2026-11-12T06:20:23+00:00,vjrenrlxl8zk,,5,0,0,Yamaha,TRACER 7,2023,6960,"{""brand"": ""Yamaha"", ""model"": ""TRACER 7"", ""year"": ""2023"", ""km"": ""6960"", ""motorbike_style"": ""adventure""}"
+20261112T061812Z,yamaha-tracer-7,2026-11-12T06:20:25+00:00,8z88ogyqgrz3,,22,2,0,YAMAHA,Tracer 7   (2021-2024),2021,21000,"{""brand"": ""YAMAHA"", ""model"": ""Tracer 7   (2021-2024)"", ""color"": ""blue"", ""year"": ""2021"", ""km"": ""21000"", ""motorbike_style"": ""adventure""}"
+20261112T061812Z,kymco-super-dink-125,2026-11-12T06:21:26+00:00,pzpkl1vpe5j3,,58,4,2,Kymco,Super Dink GT 125,2016,14000,"{""brand"": ""Kymco"", ""model"": ""Super Dink GT 125"", ""km"": ""14000"", ""year"": ""2016"", ""motorbike_style"": ""scooter"", ""color"": ""blue""}"
