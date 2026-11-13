@@ -82,13 +82,14 @@ details[open].tool>summary{margin-bottom:10px}
    <input id="f-m2" type="number" placeholder="m² mín" style="width:90px">
    <input id="f-rooms" type="number" placeholder="Hab. mín" style="width:90px">
    <select id="p-mun"></select>
+   <select id="f-min"><option value="">Cualquier distancia</option><option value="20">≤ 20 min de BCN</option><option value="30">≤ 30 min</option><option value="40">≤ 40 min</option><option value="50">≤ 50 min</option></select>
    <label><input type="checkbox" id="p-pl"> sin plantilla</label>
    <input id="f-disc" type="number" placeholder="Más barato que parecidos ≥ %" style="width:210px">
    <label><input type="checkbox" id="f-nowarn" checked> ocultar dudosos (a reformar, alquilado, ≥30% bajo parecidos…)</label>
    <button class="tab" id="f-reset">Limpiar</button>
    <span id="f-count" style="color:var(--mu);align-self:center"></span>
   </div>
-  <div style="color:var(--mu);font-size:11px;margin-top:6px">Terraza, balcón, patio, trastero… salen del texto del anuncio (aproximado). Ascensor, parking, amueblado y exterior son datos de Fotocasa.</div>
+  <div style="color:var(--mu);font-size:11px;margin-top:6px">Zona: 186 municipios a ≤ 60 min en coche de Pl. Catalunya (sin tráfico). Terraza, balcón, patio, trastero… salen del texto del anuncio (aproximado). Ascensor, parking, amueblado y exterior son datos de Fotocasa.</div>
  </div>
  <div class="kpis" id="p-kpis"></div>
  <div class="card" id="sec-opp" style="margin-bottom:12px"><h2>Oportunidades (precio vs pisos parecidos: mismo barrio/zona, m², planta, estado, extras)</h2>
@@ -100,6 +101,7 @@ details[open].tool>summary{margin-bottom:10px}
  </div>
 <details id="sec-val" class="tool"><summary>🏠 ¿Cuánto vale este piso? <small>(modelo de precios)</small></summary>
 <div class="q">
+   <div><label>Ciudad</label><select id="v-city"></select></div>
    <div><label>Barrio</label><select id="v-bar"></select></div>
    <div><label>m²</label><input id="v-m2" type="number" inputmode="numeric" placeholder="ej. 70"></div>
    <div><label>Habitaciones</label><input id="v-rooms" type="number" inputmode="numeric" value="3"></div>
@@ -118,6 +120,7 @@ details[open].tool>summary{margin-bottom:10px}
 </details>
 <details id="sec-comp" class="tool"><summary>💶 ¿Es buen precio este piso? <small>(vs pisos parecidos)</small></summary>
 <div class="q">
+   <div><label>Ciudad</label><select id="c-city"></select></div>
    <div><label>Barrio</label><select id="c-bar"></select></div>
    <div><label>m²</label><input id="c-m2" type="number" inputmode="numeric" placeholder="ej. 70"></div>
    <div><label>Precio que piden (€)</label><input id="c-price" class="big" type="number" inputmode="numeric" placeholder="ej. 235000"></div>
@@ -208,25 +211,30 @@ if(location.hash==='#second-hand')document.querySelector('.tab[data-t="sh"]').cl
 }).catch(e=>{$('#gen').textContent='Error cargando datos: '+e.message});
 
 function trend(all,dates,hist,ids){
- const stock=dates.map(d=>hist[d].filter(x=>ids.has(x[0])).length), first=dates[0];
+ const initD={};all.forEach(r=>{if(r.init)initD[r.id]=r.fs;}); // carga inicial de cada ciudad: no son entradas
+ const stock=dates.map(d=>hist[d].filter(x=>ids.has(x[0])&&initD[x[0]]!==d).length), first=dates[0];
  const lastD=dates[dates.length-1];
  const ret=dates.map(d=>d===lastD?null:all.filter(r=>r.ret&&r.ls===d).length); // el último día aún no sabe quién desaparecerá mañana
- const nue=dates.map(d=>d===first?null:all.filter(r=>r.fs===d).length);
+ const nue=dates.map(d=>d===first?null:all.filter(r=>r.fs===d&&!r.init).length);
  const rate=dates.map((d,i)=>stock[i]&&ret[i]!=null?+(100*ret[i]/stock[i]).toFixed(2):null);
  const ma=rate.map((_,i)=>{const w=rate.slice(Math.max(0,i-6),i+1).filter(x=>x!=null);return w.length>=3?+(w.reduce((a,b)=>a+b,0)/w.length).toFixed(2):null;});
  const days=all.filter(r=>r.ret).map(r=>r.days).filter(x=>x!=null).sort((a,b)=>a-b);
  const mdays=days.length?days[Math.floor(days.length/2)]:null;
  const valid=rate.filter(x=>x!=null), avg=valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:null;
- $('#t-note').textContent=dates.length<14?`Solo ${dates.length} días de datos: la tendencia será fiable con 3-4 semanas. El día 1 ("${first}") es la carga inicial y no cuenta como entradas nuevas. "Retirado" mezcla vendido y retirado por el dueño. Un día de retirados = último día que se vio el anuncio; el día más reciente no se muestra porque aún no se sabe quién desaparece.`:'"Retirado" mezcla vendido y retirado por el dueño. Un día de retirados = último día que se vio el anuncio.';
+ $('#t-note').textContent=dates.length<14?`Solo ${dates.length} días de datos: la tendencia será fiable con 3-4 semanas. El día 1 ("${first}") es la carga inicial y no cuenta como entradas nuevas; tampoco el primer día de cada ciudad añadida (la zona se amplió a 186 municipios el 13-nov). "Retirado" mezcla vendido y retirado por el dueño. Un día de retirados = último día que se vio el anuncio; el día más reciente no se muestra porque aún no se sabe quién desaparece.`:'"Retirado" mezcla vendido y retirado por el dueño. Un día de retirados = último día que se vio el anuncio.';
  kpis('#t-kpis',[['Retirados (acum., filtrados)',fmt(all.filter(r=>r.ret).length)],['% retirado/día (media)',avg==null?'–':fmt(avg,2)+'%'],
   ['Días en mercado (mediana retirados)',fmt(mdays)],['Stock activo hoy vs día 1',stock.length?fmt(stock[stock.length-1])+' / '+fmt(stock[0]):'–']]);
  chart('#t-flow',{type:'bar',data:{labels:dates,datasets:[{label:'Nuevos',data:nue,backgroundColor:'#4f8cff'},{label:'Retirados',data:ret,backgroundColor:'#34c759'}]},options:{plugins:{title:{display:true,text:'Entradas vs retirados por día',color:'#9aa0a6'}}}});
  chart('#t-rate',{type:'line',data:{labels:dates,datasets:[{label:'% retirado/día',data:rate,borderColor:'#34c759',tension:.2},{label:'media 7 días',data:ma,borderColor:'#e0b341',borderDash:[4,4],tension:.2}]},options:{plugins:{title:{display:true,text:'Tasa de retirada diaria (si baja, se vende menos)',color:'#9aa0a6'}}}});
 }
+function cityOpts(P,all){return (all?`<option value="">${all}</option>`:'')+P.cities.map(([c,m,n])=>`<option value="${c}">${c} · ${fmt(m)} min (${fmt(n)})</option>`).join('');}
+function keyCity(P){const kc={};P.rows.forEach(r=>{kc[(r.barrio??'nan')+'|'+r.mun]=r.city;kc[(r.barrio||'')+'|'+r.mun]=r.city;});return kc;}
 function initVal(P){
  const M=P.model,EX=[['terraza','Terraza'],['balcon','Balcón'],['patio_jardin','Patio/jardín'],['trastero','Trastero'],['aire','Aire acond.'],['piscina','Piscina'],['parking','Parking'],['luminoso','Luminoso'],['vista_mar','Vista al mar'],['amueblado','Amueblado'],['rented','Alquilado (con inquilino)']];
  const keys=Object.keys(M.barrio).sort((a,b)=>a.localeCompare(b)),lab=k=>{const [b,m]=k.split('|');return b==='nan'?m+' (sin barrio)':b+' · '+m;};
- $('#v-bar').innerHTML='<option value="">— elige barrio —</option>'+keys.map(k=>`<option value="${k}">${lab(k)}</option>`).join('');
+ const kc=keyCity(P);$('#v-city').innerHTML=cityOpts(P,'— elige ciudad —');
+ const fillBar=()=>{const c=$('#v-city').value;$('#v-bar').innerHTML='<option value="">— elige barrio —</option>'+keys.filter(k=>!c||kc[k]===c).map(k=>`<option value="${k}">${lab(k)}</option>`).join('');};
+ fillBar();$('#v-city').addEventListener('change',()=>{fillBar();const o=$('#v-bar').options;if(o.length===2)$('#v-bar').value=o[1].value;});
  $('#v-ex').innerHTML=EX.map(([k,l])=>`<label><input type="checkbox" data-k="${k}"> ${l}</label>`).join('');
  function calc(){
   const m2=+$('#v-m2').value,key=$('#v-bar').value,out=$('#v-out');
@@ -246,7 +254,7 @@ function initVal(P){
    txt=`Piden <b>${eur(ask)}</b>: un <b>${Math.abs(d)}% ${d<0?'por debajo':'por encima'}</b> del precio estimado. `;}
   const w=[];if(nb<5)w.push(`hay pocos pisos de este barrio (${nb}) en mi base`);if(fair>M.hi*0.92)w.push(`solo veo pisos hasta ${fmt(M.hi)} €, así que por encima de eso la estimación es menos fiable`);
   const eff=EX.filter(([k])=>ex(k)).map(([k,l])=>{const c=M.x[k==='rented'?'rented':'f_'+k];return `${l} ${c>=0?'+':''}${(Math.expm1(c)*100).toFixed(1)}%`;});
-  const sim=P.rows.filter(r=>r.a&&r.price&&r.m2&&Math.abs(r.m2-m2)<=m2*0.2&&(r.barrio+'|'+r.mun)===key).sort((a,b)=>Math.abs(a.price-(ask||fair))-Math.abs(b.price-(ask||fair))).slice(0,6);
+  const sim=P.rows.filter(r=>r.a&&r.price&&r.m2&&Math.abs(r.m2-m2)<=m2*0.2&&((r.barrio??'nan')+'|'+r.mun)===key).sort((a,b)=>Math.abs(a.price-(ask||fair))-Math.abs(b.price-(ask||fair))).slice(0,6);
   out.innerHTML=`<div class="verdict ${cls}"><h3>${head}</h3>${txt}Estimo <b style="font-size:20px">${eur(Math.round(fair/1000)*1000)}</b> (${fmt(fair/m2)} €/m²). Rango habitual: <b>${eur(Math.round(lo/1000)*1000)}</b> – <b>${eur(Math.round(hi/1000)*1000)}</b>.
    ${eff.length?`<div style="color:var(--mu);font-size:12px;margin-top:6px">Lo que aportan tus extras: ${eff.join(' · ')}</div>`:''}
    ${w.length?`<div style="color:#e0b341;font-size:12px;margin-top:6px">⚠️ ${w.join('; ')}.</div>`:''}
@@ -259,19 +267,21 @@ function initVal(P){
 function initComp(P){
  const seen={};P.rows.forEach(r=>{const k=(r.barrio||'')+'|'+r.mun;seen[k]=r.barrio?r.barrio+' · '+r.mun:r.mun+' (sin barrio)';});
  const keys=Object.keys(seen).sort((a,b)=>seen[a].localeCompare(seen[b]));
- $('#c-bar').innerHTML='<option value="">— elige barrio —</option>'+keys.map(k=>`<option value="${k}">${seen[k]}</option>`).join('');
+ const kc=keyCity(P);$('#c-city').innerHTML=cityOpts(P,'— elige ciudad —');
+ const fillBar=()=>{const c=$('#c-city').value;$('#c-bar').innerHTML='<option value="">— elige barrio —</option>'+keys.filter(k=>!c||kc[k]===c).map(k=>`<option value="${k}">${seen[k]}</option>`).join('');};
+ fillBar();$('#c-city').onchange=()=>{fillBar();const o=$('#c-bar').options;if(o.length===2)$('#c-bar').value=o[1].value;draw();};
  const EX=[['terraza','Terraza'],['balcon','Balcón'],['ascensor','Ascensor'],['ext','Exterior'],['parking','Parking'],['trastero','Trastero']];
  $('#c-ex').innerHTML='<span style="color:var(--mu);align-self:center">Comparar solo con pisos que tengan:</span>'+EX.map(([k,l])=>`<label><input type="checkbox" data-k="${k}"> ${l}</label>`).join('')+'<label><input type="checkbox" id="c-npl" checked> sin fichas repetidas</label>';
  const has=(r,k)=>k==='ext'?r.ext===1:r.f.includes(k);
  function draw(){
-  const out=$('#c-out'),m2=+$('#c-m2').value,price=+$('#c-price').value||null,rooms=+$('#c-rooms').value||null,key=$('#c-bar').value,mun=key.split('|')[1];
+  const out=$('#c-out'),m2=+$('#c-m2').value,price=+$('#c-price').value||null,rooms=+$('#c-rooms').value||null,key=$('#c-bar').value,mun=key.split('|')[1],city=kc[key];
   if(!m2||m2<20||!key){out.innerHTML='<div class="verdict v-none">Pon el barrio y los m² (y el precio) y te digo si está bien de precio.</div>';return;}
   const need=[...document.querySelectorAll('#c-ex [data-k]:checked')].map(e=>e.dataset.k),npl=$('#c-npl').checked;
   const okx=r=>need.every(k=>has(r,k))&&!(npl&&r.plantilla)&&(!rooms||Math.abs((r.rooms||0)-rooms)<=1)&&r.eur_m2!=null&&r.m2;
   const pool=P.rows.filter(okx);let comps=[],desc='';
-  for(const [scope,dm,label] of [['b',.15,'mismo barrio, ±15% de m²'],['b',.3,'mismo barrio, ±30% de m²'],['m',.3,'mismo municipio, ±30% de m²']]){
-   const c=pool.filter(r=>r.a&&Math.abs(r.m2-m2)<=m2*dm&&(scope==='b'?(r.barrio||'')+'|'+r.mun===key:r.mun===mun));
-   if(c.length>=8||label.startsWith('mismo municipio')&&c.length>=3){comps=c;desc=label;break;}
+  for(const [scope,dm,label] of [['b',.15,'mismo barrio, ±15% de m²'],['b',.3,'mismo barrio, ±30% de m²'],['m',.3,'misma zona, ±30% de m²'],['c',.3,'misma ciudad, ±30% de m²']]){
+   const c=pool.filter(r=>r.a&&Math.abs(r.m2-m2)<=m2*dm&&(scope==='b'?(r.barrio||'')+'|'+r.mun===key:scope==='m'?r.mun===mun:r.city===city));
+   if(c.length>=8||scope==='c'&&c.length>=3){comps=c;desc=label;break;}
   }
   if(comps.length<3){out.innerHTML=`<div class="verdict v-none"><h3>Pocos datos 🤷</h3>Solo hay ${comps.length} pisos parecidos. Prueba a quitar extras o habitaciones.</div>`;return;}
   const E=comps.map(r=>[r.eur_m2,1]),p=q=>wq(E,q),p5=p(.05),p25=p(.25),p50=p(.5),p75=p(.75),p95=p(.95),mine=price?price/m2:null;
@@ -281,7 +291,7 @@ function initComp(P){
    [cls,head]=pct<=20?['v-great','Muy buen precio 🔥']:pct<=45?['v-good','Buen precio 👍']:pct<=65?['v-ok','Precio normal 👌']:pct<=85?['v-high','Algo caro 🤔']:['v-bad','Caro ❌'];
    const n10=Math.round(pct/10);txt=`De cada 10 pisos parecidos, <b>${n10}</b> ${n10===1?'pide':'piden'} menos €/m² que este. Está un <b>${Math.abs(dif)}% ${dif<0?'por debajo':'por encima'}</b> de lo típico (${fmt(p50)} €/m²).`+(dif<=-30?' <br>⚠️ Está demasiado por debajo: mira por qué (a reformar, alquilado, ocupado, error en los m², oferta falsa…).':'');}
   const r2=x=>Math.round(x*m2/1000)*1000;
-  const gone=pool.filter(r=>r.ret&&Math.abs(r.m2-m2)<=m2*.3&&(desc.startsWith('mismo barrio')?(r.barrio||'')+'|'+r.mun===key:r.mun===mun)).sort((a,b)=>Math.abs(a.eur_m2-(mine||p50))-Math.abs(b.eur_m2-(mine||p50))).slice(0,4);
+  const gone=pool.filter(r=>r.ret&&Math.abs(r.m2-m2)<=m2*.3&&(desc.startsWith('mismo barrio')?(r.barrio||'')+'|'+r.mun===key:desc.startsWith('misma zona')?r.mun===mun:r.city===city)).sort((a,b)=>Math.abs(a.eur_m2-(mine||p50))-Math.abs(b.eur_m2-(mine||p50))).slice(0,4);
   const mdays=gone.length?gone.map(r=>r.days).filter(x=>x!=null).sort((a,b)=>a-b)[Math.floor(gone.length/2)]:null;
   const card=r=>`<div class="mc"><b>${eur(r.price)}</b>${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²${r.rooms?' · '+fmt(r.rooms)+' hab':''}${r.disc!=null?` · <span class="${r.disc<0?'neg':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}% vs modelo</span>`:''}<br>${r.ret?`salió tras ${fmt(r.days)} días · `:''}${link(r.url,'Ver anuncio')}</div>`;
   const near=[...comps].sort((a,b)=>Math.abs(a.eur_m2-(mine||p50))-Math.abs(b.eur_m2-(mine||p50))).slice(0,6);
@@ -304,27 +314,26 @@ function initPisos(P){
  const on=new Set(), has=(r,k)=>k==='ext'?r.ext===1:r.f.includes(k);
  $('#p-chips').innerHTML=FL.map(([k,l])=>`<span class="chip" data-k="${k}">${l}</span>`).join('');
  document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const k=c.dataset.k;on.has(k)?on.delete(k):on.add(k);c.classList.toggle('on');redraw();});
- const muns=[...new Set(P.rows.map(r=>r.mun))].sort();
- $('#p-mun').innerHTML='<option value="">Todos los municipios</option>'+muns.map(m=>`<option>${m}</option>`).join('');
+ $('#p-mun').innerHTML=cityOpts(P,'Todas las ciudades');
  const med=a=>{a=a.filter(x=>x!=null).sort((x,y)=>x-y);return a.length?(a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2):null;};
- window.map=L.map('map').setView([41.43,2.2],11);
+ window.map=L.map('map',{preferCanvas:true}).setView([41.45,2.1],9);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
  const layer=L.layerGroup().addTo(map);
  let ocN=12;
- const cols=[{k:'barrio',h:'Zona',f:r=>link(r.url,r.barrio||r.mun)+(r.warn&&r.warn.length?` <span title="${r.warn.join(' · ')}">⚠️</span>`:'')},{k:'disc',h:'vs parecidos',f:r=>r.disc==null?'–':`<span class="${r.disc<0?'neg':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`},{k:'fair',h:'Típico',f:r=>fmt(r.fair)},{k:'price',h:'Precio',f:r=>fmt(r.price)},{k:'m2',h:'m²',f:r=>fmt(r.m2)},
+ const cols=[{k:'barrio',h:'Zona',f:r=>link(r.url,(r.barrio||r.mun)+(r.barrio&&r.city!=='Barcelona'?' · '+r.city:''))+(r.warn&&r.warn.length?` <span title="${r.warn.join(' · ')}">⚠️</span>`:'')},{k:'disc',h:'vs parecidos',f:r=>r.disc==null?'–':`<span class="${r.disc<0?'neg':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`},{k:'fair',h:'Típico',f:r=>fmt(r.fair)},{k:'price',h:'Precio',f:r=>fmt(r.price)},{k:'m2',h:'m²',f:r=>fmt(r.m2)},
   {k:'eur_m2',h:'€/m²',f:r=>fmt(r.eur_m2)},{k:'rel',h:'vs barrio',f:r=>r.rel==null?'–':`<span class="${r.rel<0?'neg':'pos'}">${r.rel>0?'+':''}${r.rel}%</span>`},
   {k:'drop',h:'Bajada',f:r=>r.drop?fmt(r.drop,1)+'%':'–'},{k:'days',h:'Días',f:r=>fmt(r.days)},{k:'rooms',h:'Hab'}];
  function redraw(){
-  const pmax=+$('#f-pmax').value||1e12, m2=+$('#f-m2').value||0, rm=+$('#f-rooms').value||0, mun=$('#p-mun').value, npl=$('#p-pl').checked;
+  const pmax=+$('#f-pmax').value||1e12, m2=+$('#f-m2').value||0, rm=+$('#f-rooms').value||0, mun=$('#p-mun').value, npl=$('#p-pl').checked, mmax=+$('#f-min').value||0;
   const dmin=+$('#f-disc').value||0, nowarn=$('#f-nowarn').checked;
-  const ok=r=>(!dmin||(r.disc!=null&&r.disc<=-dmin))&&!(nowarn&&r.warn&&r.warn.length)&&r.price<=pmax&&(r.m2||0)>=m2&&(r.rooms||0)>=rm&&(!mun||r.mun===mun)&&!(npl&&r.plantilla)&&[...on].every(k=>has(r,k));
+  const ok=r=>(!dmin||(r.disc!=null&&r.disc<=-dmin))&&!(nowarn&&r.warn&&r.warn.length)&&r.price<=pmax&&(r.m2||0)>=m2&&(r.rooms||0)>=rm&&(!mun||r.city===mun)&&(!mmax||(r.min??99)<=mmax)&&!(npl&&r.plantilla)&&[...on].every(k=>has(r,k));
   const all=P.rows.filter(ok), act=all.filter(r=>r.a), ids=new Set(all.map(r=>r.id));
   $('#f-count').textContent=`${fmt(act.length)} de ${fmt(P.rows.filter(r=>r.a).length)} pisos`;
   kpis('#p-kpis',[['Activos (con filtros)',fmt(act.length)],['Nuevos hoy',fmt(act.filter(r=>r.new).length)],['Con bajada de precio',fmt(act.filter(r=>r.drop>0).length)],['≥10% más baratos que parecidos',fmt(act.filter(r=>r.disc!=null&&r.disc<=-10&&!(r.warn&&r.warn.length)).length)],
    ['Retirados (acum., sin filtros)',fmt(P.retirados)],['€/m² mediano',fmt(med(act.map(r=>r.eur_m2)))],['Precio mediano',eur(med(act.map(r=>r.price)))]]);
   const dates=Object.keys(P.hist).sort();
   chart('#p-ser',{type:'line',data:{labels:dates,datasets:[{label:'€/m²',data:dates.map(d=>med(P.hist[d].filter(x=>ids.has(x[0])).map(x=>x[1]))),borderColor:'#4f8cff',tension:.2}]},options:{plugins:{legend:{display:false}},scales:{y:{suggestedMin:2000,ticks:{callback:v=>fmt(v)}}}}});
-  const g={};act.forEach(r=>{(g[r.barrio]=g[r.barrio]||[]).push(r.eur_m2)});
+  const g={};act.forEach(r=>{const k=r.barrio?r.barrio+(r.city!=='Barcelona'?' ('+r.city+')':''):r.mun;(g[k]=g[k]||[]).push(r.eur_m2)});
   let b=Object.entries(g).filter(([n,a])=>a.length>=3).map(([n,a])=>[n,med(a),a.length]).sort((x,y)=>y[1]-x[1]);
   const bm=$('#p-bar-mode').value;if(bm==='top')b=b.slice(0,15);else if(bm==='low')b=b.slice(-15);
   $('#p-bar').parentElement.style.height=Math.max(260,b.length*22+30)+'px';$('#p-bar').style.maxHeight='none';
@@ -335,17 +344,17 @@ function initPisos(P){
   const pts=act.filter(r=>r.lat&&r.lon).map(r=>[r.lat,r.lon]);if(pts.length>1&&map.fitBounds)map.fitBounds(pts,{padding:[20,20]});
   act.filter(r=>r.lat&&r.lon).forEach(r=>{const rel=r.rel??0,c=rel<=-10?'#34c759':rel>=10?'#ff5d5d':'#e0b341';
    L.circleMarker([r.lat,r.lon],{radius:5,color:c,fillColor:c,fillOpacity:.7,weight:1}).addTo(layer)
-    .bindPopup(`${r.barrio||r.mun}<br>${eur(r.price)} · ${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²<br>${link(r.url,'Ver anuncio')}`);});
+    .bindPopup(`${r.barrio||r.mun}${r.city!=='Barcelona'?' · '+r.city:''}<br>${eur(r.price)} · ${fmt(r.m2)} m² · ${fmt(r.eur_m2)} €/m²<br>${link(r.url,'Ver anuncio')}`);});
   const s=$('#p-sort').value;
   const srt=[...act].sort((a,b)=>s==='disc'?(a.disc??99)-(b.disc??99):s==='rel'?(a.rel??99)-(b.rel??99):s==='drop'?(b.drop||0)-(a.drop||0):(b.days||0)-(a.days||0));
   table('#p-tab',cols,srt);
-  $('#p-cards').innerHTML=srt.slice(0,ocN).map(r=>`<div class="oc"><div class="t"><span>${eur(r.price)}</span>${r.disc==null?'':`<span class="badge ${r.disc<0?'':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`}</div><div>${fmt(r.m2)} m² · ${fmt(r.rooms)} hab · ${fmt(r.eur_m2)} €/m²</div><div class="m">${r.barrio||r.mun}${r.days!=null?' · '+fmt(r.days)+' días publicado':''}</div>${r.warn&&r.warn.length?`<div class="w">⚠️ ${r.warn.join(' · ')}</div>`:''}<div>${link(r.url,'Ver anuncio')}</div></div>`).join('')+(srt.length>ocN?`<div class="oc m" style="display:flex;align-items:center;justify-content:center"><button class="tab" id="oc-more">Ver ${Math.min(12,srt.length-ocN)} más (quedan ${fmt(srt.length-ocN)})</button></div>`:'');
+  $('#p-cards').innerHTML=srt.slice(0,ocN).map(r=>`<div class="oc"><div class="t"><span>${eur(r.price)}</span>${r.disc==null?'':`<span class="badge ${r.disc<0?'':'pos'}">${r.disc>0?'+':''}${fmt(r.disc,1)}%</span>`}</div><div>${fmt(r.m2)} m² · ${fmt(r.rooms)} hab · ${fmt(r.eur_m2)} €/m²</div><div class="m">${r.barrio||r.mun}${r.barrio&&r.city!=='Barcelona'?' · '+r.city:''}${r.days!=null?' · '+fmt(r.days)+' días publicado':''}</div>${r.warn&&r.warn.length?`<div class="w">⚠️ ${r.warn.join(' · ')}</div>`:''}<div>${link(r.url,'Ver anuncio')}</div></div>`).join('')+(srt.length>ocN?`<div class="oc m" style="display:flex;align-items:center;justify-content:center"><button class="tab" id="oc-more">Ver ${Math.min(12,srt.length-ocN)} más (quedan ${fmt(srt.length-ocN)})</button></div>`:'');
   const mb=$('#oc-more');if(mb)mb.onclick=()=>{ocN+=12;redraw();};
  }
- ['#p-sort','#p-mun','#p-pl','#p-bar-mode'].forEach(s=>$(s).onchange=()=>{ocN=12;redraw();});
+ ['#p-sort','#p-mun','#f-min','#p-pl','#p-bar-mode'].forEach(s=>$(s).onchange=()=>{ocN=12;redraw();});
  ['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).oninput=()=>{ocN=12;redraw();});
  $('#f-nowarn').onchange=()=>{ocN=12;redraw();};
- $('#f-reset').onclick=()=>{on.clear();document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).value='');$('#f-nowarn').checked=true;$('#p-mun').value='';$('#p-pl').checked=false;redraw();};
+ $('#f-reset').onclick=()=>{on.clear();document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));['#f-pmax','#f-m2','#f-rooms','#f-disc'].forEach(s=>$(s).value='');$('#f-nowarn').checked=true;$('#p-mun').value='';$('#f-min').value='';$('#p-pl').checked=false;redraw();};
  redraw();
 }
 

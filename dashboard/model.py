@@ -4,9 +4,10 @@ Idea: el precio "justo" de un piso = lo que piden por pisos parecidos (mismo bar
 El descuento de un anuncio = su precio / precio justo - 1 (negativo = mas barato que el mercado).
 Para no premiar al propio anuncio, el precio justo de cada anuncio es "fuera de muestra" (validacion cruzada).
 
-Limites: aprende solo del rango que se descarga (150-300k), usa lo que piden (no lo que se paga) y
-no ve fotos ni calle exacta. Error tipico en validacion cruzada: ~9% (mediana).
-Corrige el sesgo de ver solo pisos de 150-300k con una regresion normal truncada.
+Zona: efecto de barrio + efecto de ciudad (186 municipios a <= 60 min de Pl. Catalunya) + un gradiente por
+minutos en coche a BCN, para que las ciudades con pocos anuncios no queden en la media general.
+Limites: aprende solo del rango que se descarga (150-350k), usa lo que piden (no lo que se paga) y
+no ve fotos ni calle exacta. Corrige el sesgo de ver solo ese rango con una regresion normal truncada.
 """
 import json
 import math
@@ -27,6 +28,14 @@ CELL_LAT, CELL_LON = 0.005, 0.007   # ~500 m
 
 def barrio_key(neigh, mun):
     return f"{neigh}|{mun}"
+
+
+def area_label(district, city):
+    """Zona de Fotocasa (distrito) con su ciudad, porque hay distritos con el mismo nombre en varias ciudades."""
+    district = "" if pd.isna(district) else str(district).strip()
+    if city == "Barcelona" and district:
+        return district
+    return f"{district} · {city}" if district and district != city else city
 
 
 def design(d):
@@ -58,12 +67,14 @@ def design(d):
         X["s_" + k] = (d.subtype == k).astype(float)
     X["e_G"] = (d.energy == "G").astype(float)
     X["e_good"] = d.energy.isin(["A", "B", "C", "D"]).astype(float)
+    X["min_bcn"] = d.min_bcn.fillna(d.min_bcn.median()) / 10   # por cada 10 min en coche
     X = pd.DataFrame(X, index=d.index)
     B = pd.get_dummies(d.bkey, prefix="b").astype(float)
+    T = pd.get_dummies(d.city, prefix="t").astype(float)
     cell = (np.floor(d.lat / CELL_LAT).astype("Int64").astype(str) + "_" + np.floor(d.lon / CELL_LON).astype("Int64").astype(str))
     C = pd.get_dummies(cell, prefix="g").astype(float)
     C = C.loc[:, C.sum() >= 4]
-    return X, B, C
+    return X, B, T, C
 
 
 _erf = np.vectorize(math.erf)
@@ -86,14 +97,14 @@ def _lam(m, s, lo, hi):
 C_SIZE = 0.85   # el precio sube ~ con m2^0.85 (a priori); el modelo ajusta la desviacion
 
 
-def _trunc_fit(M, y, ls, pen, s, lo, hi, iters=60):
-    """Regresion normal truncada con ridge (iteracion de punto fijo). y y limites en log(precio)."""
+def _trunc_fit(M, y, ls, Ainv, s, lo, hi, iters=60):
+    """Regresion normal truncada con ridge (iteracion de punto fijo). y y limites en log(precio).
+    Ainv = (M'M + diag(pen))^-1, calculada una vez fuera (es lo caro con miles de columnas)."""
     yy, lo_i, hi_i = y - C_SIZE * ls, lo - C_SIZE * ls, hi - C_SIZE * ls
-    A = M.T @ M + np.diag(pen)
-    w = np.linalg.solve(A, M.T @ yy)
+    w = Ainv @ (M.T @ yy)
     for _ in range(iters):
         mu = M @ w
-        w2 = np.linalg.solve(A, M.T @ (yy - s * _lam(mu, s, lo_i, hi_i)))
+        w2 = Ainv @ (M.T @ (yy - s * _lam(mu, s, lo_i, hi_i)))
         done = np.max(np.abs(w2 - w)) < 1e-6
         w = w2
         if done:
@@ -104,22 +115,24 @@ def _trunc_fit(M, y, ls, pen, s, lo, hi, iters=60):
     return w, ll
 
 
-def fit(d, lam_x=0.5, lam_b=2.0, lam_c=5.0, lam_size=0.05, folds=10, seed=0):
+def fit(d, lam_x=0.5, lam_b=2.0, lam_t=1.0, lam_c=5.0, lam_size=0.05, folds=10, seed=0):
     """Devuelve (modelo, precio de mercado sin truncar, precio tipico de pisos parecidos que SE VEN en el rango); ambos fuera de muestra."""
-    X, B, C = design(d)
+    X, B, T, C = design(d)
     y = np.log(d.price_last.values)
     ls = np.log(d.surface.values)
     lo, hi = float(np.log(d.price_last.min())), float(np.log(d.price_last.max()))
-    M = pd.concat([X, B, C], axis=1)
+    M = pd.concat([X, B, T, C], axis=1)
     mu = M.mean()
     Mc = np.hstack([np.ones((len(M), 1)), (M - mu).values])
-    pen = np.array([0.0] + [lam_x] * X.shape[1] + [lam_b] * B.shape[1] + [lam_c] * C.shape[1])
+    pen = np.array([0.0] + [lam_x] * X.shape[1] + [lam_b] * B.shape[1] + [lam_t] * T.shape[1] + [lam_c] * C.shape[1])
     pen[1 + list(X.columns).index("lsurf")] = lam_size   # lsurf: desviacion respecto a C_SIZE
+    G = Mc.T @ Mc
+    Ainv = np.linalg.inv(G + np.diag(pen))
 
     # sigma (desviacion tipica del log-precio dado todo lo demas) por maxima verosimilitud en una rejilla
     best = None
     for s in [0.10, 0.12, 0.14, 0.16, 0.18, 0.22]:
-        w, ll = _trunc_fit(Mc, y, ls, pen, s, lo, hi)
+        w, ll = _trunc_fit(Mc, y, ls, Ainv, s, lo, hi)
         if best is None or ll > best[0]:
             best = (ll, s)
     sigma = best[1]
@@ -129,19 +142,26 @@ def fit(d, lam_x=0.5, lam_b=2.0, lam_c=5.0, lam_size=0.05, folds=10, seed=0):
     pred = np.zeros(len(d))   # esperanza condicionada al rango, para medir el error contra lo observado
     for f in np.array_split(idx, folds):
         tr = np.setdiff1d(idx, f)
-        w, _ = _trunc_fit(Mc[tr], y[tr], ls[tr], pen, sigma, lo, hi)
+        Mf = Mc[f]
+        w, _ = _trunc_fit(Mc[tr], y[tr], ls[tr], np.linalg.inv(G - Mf.T @ Mf + np.diag(pen)), sigma, lo, hi)
         m = Mc[f] @ w
         fair[f] = m + C_SIZE * ls[f]
         pred[f] = fair[f] + sigma * _lam(m, sigma, lo - C_SIZE * ls[f], hi - C_SIZE * ls[f])
     err = np.exp(pred) / d.price_last.values - 1
 
-    w, _ = _trunc_fit(Mc, y, ls, pen, sigma, lo, hi)
+    w, _ = _trunc_fit(Mc, y, ls, Ainv, sigma, lo, hi)
     const, coefs = w[0], pd.Series(w[1:], index=M.columns)
     base = float(const - (coefs[X.columns] * mu[X.columns]).sum())
     sum_b = float((coefs[B.columns] * mu[B.columns]).sum())   # celdas: se anulan al fijarlas en su media
+    sum_t = float((coefs[T.columns] * mu[T.columns]).sum())
     coef_x = {c: float(coefs[c]) for c in X.columns}
     coef_x["lsurf"] += C_SIZE
-    model = {"k": base, "x": coef_x, "barrio": {c[2:]: float(coefs[c] - sum_b) for c in B.columns},
+    # La ciudad y sus minutos a BCN se suman al efecto de cada barrio: el valorador solo pide el barrio.
+    c_min = coef_x.pop("min_bcn")
+    city = d.groupby("bkey").city.first()
+    mins = d.groupby("bkey").min_bcn.first().fillna(d.min_bcn.median()) / 10
+    barrio = {c[2:]: float(coefs[c] - sum_b + coefs["t_" + city[c[2:]]] - sum_t + c_min * mins[c[2:]]) for c in B.columns}
+    model = {"k": base, "x": coef_x, "barrio": barrio, "min_bcn_10": c_min,
              "n_barrio": {k: int(v) for k, v in d.bkey.value_counts().items()},
              "sigma": float(sigma), "lo": float(np.exp(lo)), "hi": float(np.exp(hi)),
              "med_pct": float(np.median(np.abs(err))), "mae_pct": float(np.mean(np.abs(err))), "n": int(len(d))}

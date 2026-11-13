@@ -3,11 +3,12 @@ import csv, glob, json, re, sys
 from collections import defaultdict
 from pathlib import Path
 import yaml
+import rawio
 
 ROOT = Path(__file__).resolve().parent
 COLS = ["id", "url", "state", "in_scope", "price_first", "price_last", "price_changes", "drop_pct", "reduced_price",
         "eur_m2", "rooms", "bathrooms", "surface", "floor", "subtype", "exterior", "antiquity", "conservation",
-        "orientation", "energy", "energy_kwh", "co2", "construction", "ground_surface", "locality", "neighborhood", "municipality", "zone", "lat", "lon", "client_type", "client_alias",
+        "orientation", "energy", "energy_kwh", "co2", "construction", "ground_surface", "locality", "neighborhood", "municipality", "zone", "ciudad", "provincia", "min_bcn", "km_bcn", "lat", "lon", "client_type", "client_alias",
         "occupied", "bare_ownership", "auctioned", "rented", "new_construction", "okupa_txt", "nuda_txt", "a_reformar", "seccion", "renta_idx_seccion", "renta_idx", "nivel_zona", "publication_date", "first_seen",
         "last_seen", "days_listed", "runs_seen", "dup_n", "dup_group", "plantilla", "desc_start"]
 
@@ -20,12 +21,13 @@ RE_REFORMAR = re.compile(r"a reformar|para reformar|reforma integral|a rehabilit
 
 
 def descriptions():
-    d = {}
-    p = ROOT / "data/raw/items.jsonl"
-    if p.exists():
-        for line in open(p, encoding="utf-8"):
-            o = json.loads(line); d[str(o["id"])] = o["item"].get("description") or ""
-    return d
+    return {str(o["id"]): o["item"].get("description") or "" for o in rawio.iter_items()}
+
+
+def zonas():
+    """slug de Fotocasa -> municipio del INE con su tiempo en coche a Pl. Catalunya (ver ref/build_zonas.py)."""
+    p = ROOT / "data" / "ref" / "municipios.csv"
+    return {r["slug"]: r for r in csv.DictReader(open(p, encoding="utf-8"))} if p.exists() else {}
 
 
 def num(x):
@@ -99,10 +101,10 @@ def in_scope(r, sc):
 
 
 def build(sid, scope):
-    files = sorted(glob.glob(str(ROOT / "data/raw/*_search*.csv")))
+    files = rawio.search_files()
     rows = []
     for f in files:
-        for r in csv.DictReader(open(f, encoding="utf-8")):
+        for r in csv.DictReader(rawio.open_text(f)):
             if r["search"] == sid:
                 r["_complete"] = "INCOMPLETO" not in f
                 rows.append(r)
@@ -119,6 +121,7 @@ def build(sid, scope):
     for f in sorted(glob.glob(str(ROOT / "data/raw/*_details.csv"))):
         for r in csv.DictReader(open(f, encoding="utf-8")):
             extra[r["id"]] = r
+    zs = zonas()
     runs = sorted({r["run_id"] for r in rows if r["_complete"]})
     last_run = runs[-1] if runs else None
     by = defaultdict(list)
@@ -151,6 +154,9 @@ def build(sid, scope):
             d["price_last"] = now_price[iid]
             d["drop_pct"] = round(100 * (d["price_last"] - prices[0]) / prices[0], 1)
             d["eur_m2"] = round(d["price_last"] / sur) if sur else None
+        z = zs.get(d["zone"], {})
+        d.update({"ciudad": z.get("ciudad") or d["locality"], "provincia": z.get("provincia"),
+                  "min_bcn": num(z.get("min_bcn")), "km_bcn": num(z.get("km_bcn"))})
         e = extra.get(iid, {})
         d.update({k: e.get(k) for k in ("energy", "energy_kwh", "co2", "construction", "ground_surface")})
         txt = descs.get(iid, "")

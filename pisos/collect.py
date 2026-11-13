@@ -1,8 +1,9 @@
-"""Descarga CRUDA diaria de Fotocasa. Solo añade data/raw/<run_id>_search.csv."""
-import csv, json, re, sys, time, argparse, glob, hashlib
+"""Descarga CRUDA diaria de Fotocasa. Solo añade ficheros nuevos en data/raw/ (ver rawio.py)."""
+import csv, gzip, json, re, sys, time, argparse, glob, hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 import httpx, yaml
+import rawio
 
 ROOT = Path(__file__).resolve().parent
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
@@ -10,6 +11,8 @@ COLS = ["run_id", "search", "zone", "seen_at", "id", "url", "price", "reduced_pr
         "floor", "antiquity", "conservation", "orientation", "exterior", "subtype", "locality", "neighborhood",
         "municipality", "lat", "lon", "publication_date", "client_type", "client_alias", "occupied", "bare_ownership",
         "auctioned", "rented", "new_construction", "desc_start"]
+# Tope de tiempo para bajar fichas por ejecución (con 186 municipios hay unas 18.000 nuevas al ampliar la zona).
+FICHAS_MIN = 120
 PROPS = re.compile(r'<script type="application/json" id="__initial_props__">(.*?)</script>', re.S)
 
 
@@ -54,7 +57,6 @@ DROP = {"multimedia", "detail", "detailWithParams", "brandInfo", "promotionLogo"
         "isDiscarded", "isVisited", "isTop", "isSuperTop", "isTopPlus", "isHighlighted", "isPremium", "isNew", "phone",
         "hasListLogo", "isPackAdvancePriority", "isPackBasicPriority", "isPackMinimalPriority", "isPackPremiumPriority",
         "isPrioritaryAndMultimediaRule", "hasPhoneVisibility", "isTrackedPhone", "isMsAdvance"}
-ITEMS = ROOT / "data" / "raw" / "items.jsonl"
 
 
 def stripped(it):
@@ -65,19 +67,19 @@ def stripped(it):
 
 def save_items(items, run_id, now):
     """Guarda el anuncio COMPLETO la primera vez que se ve y cada vez que cambia algo (no repite lo igual)."""
-    last = {}
-    if ITEMS.exists():
-        for line in open(ITEMS, encoding="utf-8"):
-            o = json.loads(line); last[o["id"]] = o["h"]
+    last = {o["id"]: o["h"] for o in rawio.iter_items()}
     new = 0
-    with open(ITEMS, "a", encoding="utf-8") as fh:
+    rawio.ITEMS_DIR.mkdir(parents=True, exist_ok=True)
+    with gzip.open(rawio.ITEMS_DIR / f"{run_id}.jsonl.gz", "wt", encoding="utf-8") as fh:
         for it in items:
             d = stripped(it)
             h = hashlib.md5(json.dumps(d, sort_keys=True).encode()).hexdigest()[:12]
             if last.get(it["id"]) != h:
                 fh.write(json.dumps({"id": it["id"], "run_id": run_id, "seen_at": now, "h": h, "item": d}, ensure_ascii=False) + "\n")
                 last[it["id"]] = h; new += 1
-    print(f"items.jsonl: {new} anuncios nuevos o cambiados")
+    if not new:
+        (rawio.ITEMS_DIR / f"{run_id}.jsonl.gz").unlink()
+    print(f"items: {new} anuncios nuevos o cambiados")
 
 
 def detail(client, url_):
@@ -105,8 +107,8 @@ def detail(client, url_):
 
 def read_raw():
     seen, removed, detailed = {}, set(), set()
-    for f in sorted(glob.glob(str(ROOT / "data/raw/*_search*.csv"))):
-        for r in csv.DictReader(open(f, encoding="utf-8")):
+    for f in rawio.search_files():
+        for r in csv.DictReader(rawio.open_text(f)):
             seen[r["id"]] = (r["run_id"], r["url"])
     for f in sorted(glob.glob(str(ROOT / "data/raw/*_status.csv"))):
         for r in csv.DictReader(open(f, encoding="utf-8")):
@@ -129,6 +131,30 @@ def write(path, cols, rows):
         w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore"); w.writeheader(); w.writerows(rows)
 
 
+def scrape_zone(c, zone, s, run_id, now):
+    """Todas las páginas de una zona. Devuelve (filas, anuncios, completa)."""
+    seen, rows, items_all, total = set(), [], [], None
+    for page in range(1, 400):
+        r = fetch(c, url(zone, page, s))
+        if not r:
+            print(f"[{s['id']}/{zone}] fallo en página {page}")
+            return rows, items_all, False
+        total = r.get("count", total)
+        new = [i for i in r["resultsV2"]["items"] if i["id"] not in seen]
+        if not new:
+            break
+        for i in new:
+            seen.add(i["id"]); rows.append(row(i, run_id, s["id"], zone, now)); items_all.append(i)
+        if len(seen) >= total:
+            break
+        time.sleep(1)
+    print(f"[{s['id']}/{zone}] {len(seen)} de {total}")
+    if total and len(seen) < total * 0.95:
+        print("  AVISO: incompleto")
+        return rows, items_all, False
+    return rows, items_all, True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only"); ap.add_argument("--run-id")
@@ -141,30 +167,30 @@ def main():
         for s in cfg:
             if a.only and s["id"] != a.only:
                 continue
-            for zone in s["zones"]:
-                seen, got, total = set(), 0, None
-                for page in range(1, 200):
-                    r = fetch(c, url(zone, page, s))
-                    if not r:
-                        print(f"[{s['id']}/{zone}] fallo en página {page}"); ok = False; break
-                    total = r.get("count", total)
-                    items = r["resultsV2"]["items"]
-                    new = [i for i in items if i["id"] not in seen]
-                    if not new:
-                        break
-                    for i in new:
-                        seen.add(i["id"]); rows.append(row(i, run_id, s["id"], zone, now)); allitems.append(i)
-                    if len(seen) >= total:
-                        break
-                    time.sleep(1)
-                print(f"[{s['id']}/{zone}] {len(seen)} de {total}")
-                if total and len(seen) < total * 0.95:
-                    print("  AVISO: incompleto"); ok = False
+            # Con muchas zonas un fallo suelto es probable: las zonas que fallan se reintentan al final (2 vueltas)
+            # antes de dar la ejecución por incompleta.
+            pending = list(s["zones"])
+            for attempt in range(3):
+                failed = []
+                for zone in pending:
+                    zr, zi, good = scrape_zone(c, zone, s, run_id, now)
+                    if good:
+                        rows += zr; allitems += zi
+                    else:
+                        failed.append(zone)
+                if not failed:
+                    break
+                pending = failed
+                print(f"[{s['id']}] {len(failed)} zonas fallidas: {failed}" + (" -> reintento en 60 s" if attempt < 2 else ""))
+                if attempt < 2:
+                    time.sleep(60)
+            if failed:
+                ok = False
     if not rows:
         sys.exit("sin datos")
     out = ROOT / "data" / "raw"
     out.mkdir(parents=True, exist_ok=True)
-    with open(out / f"{run_id}_search{'' if ok else '_INCOMPLETO'}.csv", "w", newline="", encoding="utf-8") as fh:
+    with gzip.open(out / f"{run_id}_search{'' if ok else '_INCOMPLETO'}.csv.gz", "wt", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=COLS); w.writeheader(); w.writerows(rows)
     print(f"{len(rows)} filas, run {run_id}, completo={ok}")
     out.mkdir(parents=True, exist_ok=True)
@@ -185,12 +211,12 @@ def main():
             st.append({"run_id": run_id, "checked_at": now, "id": i, "exists": "" if ex is None else ex, "price_now": d.get("price_now")})
             time.sleep(1)
         write(out / f"{run_id}_status.csv", STATUS_COLS, st)
-        # 2) ficha completa (certificado energético, etc.) una vez por anuncio nuevo, hasta 40 min por ejecución; lo que falte, al día siguiente
+        # 2) ficha completa (certificado energético, etc.) una vez por anuncio nuevo, hasta FICHAS_MIN por ejecución; lo que falte, al día siguiente
         todo = [(str(r["id"]), r["url"]) for r in rows if str(r["id"]) not in detailed]
         ds = []
         t0 = time.monotonic()
         for i, u in todo:
-            if time.monotonic() - t0 > 40 * 60:
+            if time.monotonic() - t0 > FICHAS_MIN * 60:
                 break
             ex, d = detail(c, u)
             if ex:

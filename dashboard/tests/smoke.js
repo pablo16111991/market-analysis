@@ -41,6 +41,17 @@ setTimeout(() => {
   check(cnt() > 0 && cnt() < base, `filtro terraza reduce (${base} -> ${cnt()})`);
   q('#f-reset').click();
   check(cnt() === base, 'Limpiar restaura filtros');
+  // ciudad y distancia a BCN
+  const cities = [...q('#p-mun').options].map(o => o.value).filter(Boolean);
+  check(cities.length >= 1, 'selector de ciudades (' + cities.length + ')');
+  set('#p-mun', cities[cities.length - 1]);
+  check(cnt() > 0 && cnt() < base, `filtro ciudad reduce (${base} -> ${cnt()})`);
+  q('#f-reset').click(); set('#f-min', '20');
+  check(cnt() > 0 && cnt() <= base, `filtro <= 20 min (${base} -> ${cnt()})`);
+  q('#f-reset').click();
+  set('#v-city', cities[0]);
+  check(q('#v-bar').options.length > 1, 'valorador filtra barrios por ciudad (' + q('#v-bar').options.length + ')');
+  set('#v-city', '');
   // valorador
   const bar = q('#v-bar'); check(bar.options.length > 10, 'valorador tiene barrios (' + bar.options.length + ')');
   set('#v-bar', bar.options[5].value); set('#v-m2', 70); set('#v-ask', 230000);

@@ -1,0 +1,187 @@
+cumun,nombre,ciudad,provincia,slug,min_bcn,km_bcn,lon,lat,anuncios_test
+08019,Barcelona,Barcelona,Barcelona,barcelona-capital,5.8,2.9,2.16491,41.40575,4537
+08194,Sant Adrià de Besòs,Sant Adrià de Besòs,Barcelona,sant-adria-de-besos,13.0,6.5,2.21948,41.42444,305
+08101,"Hospitalet de Llobregat, L'",L'Hospitalet de Llobregat,Barcelona,l-hospitalet-de-llobregat,13.7,7.2,2.11204,41.36543,1567
+08015,Badalona,Badalona,Barcelona,badalona,14.4,9.5,2.2331,41.44759,1477
+08245,Santa Coloma de Gramenet,Santa Coloma de Gramenet,Barcelona,santa-coloma-de-gramenet,15.0,10.1,2.21064,41.45155,492
+08077,Esplugues de Llobregat,Esplugues de Llobregat,Barcelona,esplugues-de-llobregat,15.8,8.9,2.08926,41.37515,332
+08221,Sant Just Desvern,Sant Just Desvern,Barcelona,sant-just-desvern,17.0,10.4,2.07372,41.38451,1
+08073,Cornellà de Llobregat,Cornellà de Llobregat,Barcelona,cornella-de-llobregat,17.8,10.5,2.07678,41.35935,162
+08169,"Prat de Llobregat, El",El Prat de Llobregat,Barcelona,el-prat-de-llobregat,18.0,11.3,2.09346,41.32337,169
+08126,Montgat,Montgat,Barcelona,montgat,18.1,14.9,2.27742,41.47111,33
+08217,Sant Joan Despí,Sant Joan Despí,Barcelona,sant-joan-despi,19.1,11.3,2.06317,41.36867,47
+08211,Sant Feliu de Llobregat,Sant Feliu de Llobregat,Barcelona,sant-feliu-de-llobregat,20.2,12.4,2.04713,41.3855,54
+08003,Alella,Alella,Barcelona,alella,20.2,18.2,2.2969,41.49297,2
+08125,Montcada i Reixac,Montcada i Reixac,Barcelona,montcada-i-reixac,21.0,15.9,2.18022,41.48165,116
+08282,Tiana,Tiana,Barcelona,tiana,21.2,15.7,2.26961,41.48095,9
+08205,Sant Cugat del Vallès,Sant Cugat del Vallès,Barcelona,sant-cugat-del-valles,21.4,15.6,2.07522,41.46739,8
+08200,Sant Boi de Llobregat,Sant Boi de Llobregat,Barcelona,sant-boi-de-llobregat,22.0,15.4,2.03478,41.34477,290
+08180,Ripollet,Ripollet,Barcelona,ripollet,22.1,17.7,2.15807,41.49873,99
+08252,Barberà del Vallès,Barberà del Vallès,Barcelona,barbera-del-valles,22.4,20.0,2.12634,41.51706,161
+08230,Premià de Dalt,Premià de Dalt,Barcelona,premia-de-dalt,22.9,23.6,2.35256,41.50141,9
+08301,Viladecans,Viladecans,Barcelona,viladecans,22.9,18.2,2.01492,41.31704,216
+08089,Gavà,Gavà,Barcelona,gava,23.1,19.9,1.9971,41.30413,164
+08904,Badia del Vallès,Badia del Vallès,Barcelona,badia-del-valles,23.2,22.1,2.11543,41.50803,58
+08118,"Masnou, El",El Masnou,Barcelona,el-masnou,23.2,19.5,2.3166,41.48343,24
+08105,"Llagosta, La",La Llagosta,Barcelona,la-llagosta,23.8,18.8,2.19493,41.51271,67
+08172,Premià de Mar,Premià de Mar,Barcelona,premia-de-mar,24.0,24.1,2.35893,41.49352,67
+08266,Cerdanyola del Vallès,Cerdanyola del Vallès,Barcelona,cerdanyola-del-valles,24.4,18.7,2.13359,41.49101,114
+08244,Santa Coloma de Cervelló,Santa Coloma de Cervelló,Barcelona,santa-coloma-de-cervello,24.8,18.5,2.01849,41.3654,1
+08124,Mollet del Vallès,Mollet del Vallès,Barcelona,mollet-del-valles,24.9,22.0,2.21209,41.5419,185
+08263,Sant Vicenç dels Horts,Sant Vicenç dels Horts,Barcelona,sant-vicenc-dels-horts,25.0,17.1,2.00451,41.39373,98
+08214,Vilassar de Dalt,Vilassar de Dalt,Barcelona,vilassar-de-dalt,25.2,24.7,2.35557,41.51707,20
+08260,Santa Perpètua de Mogoda,Santa Perpètua de Mogoda,Barcelona,santa-perpetua-de-mogoda,25.6,22.4,2.18351,41.52868,56
+08056,Castelldefels,Castelldefels,Barcelona,castelldefels,25.6,22.0,1.97511,41.2792,328
+08281,Teià,Teià,Barcelona,teia,25.8,20.5,2.32134,41.49569,3
+08029,Cabrera de Mar,Cabrera de Mar,Barcelona,cabrera-de-mar,25.9,27.2,2.39487,41.52559,11
+08123,Molins de Rei,Molins de Rei,Barcelona,molins-de-rei,26.1,17.8,2.02257,41.41092,37
+08159,Parets del Vallès,Parets del Vallès,Barcelona,parets-del-valles,26.3,25.0,2.22846,41.56611,31
+08187,Sabadell,Sabadell,Barcelona,sabadell,26.6,25.8,2.10193,41.54993,1068
+08115,Martorelles,Martorelles,Barcelona,martorelles,27.0,24.1,2.24071,41.52849,40
+08184,Rubí,Rubí,Barcelona,rubi,27.6,22.9,2.03035,41.4947,355
+08219,Vilassar de Mar,Vilassar de Mar,Barcelona,vilassar-de-mar,27.7,27.9,2.38938,41.50592,15
+08157,Pallejà,Pallejà,Barcelona,palleja,27.9,20.9,1.98574,41.42272,12
+08238,Sant Quirze del Vallès,Sant Quirze del Vallès,Barcelona,sant-quirze-del-valles,28.5,26.4,2.07276,41.5289,31
+08196,Sant Andreu de la Barca,Sant Andreu de la Barca,Barcelona,sant-andreu-de-la-barca,28.6,24.1,1.96797,41.449,77
+08030,Cabrils,Cabrils,Barcelona,cabrils,28.7,26.6,2.37005,41.52997,3
+08209,Sant Fost de Campsentelles,Sant Fost de Campsentelles,Barcelona,sant-fost-de-campsentelles,28.9,20.2,2.2363,41.51207,3
+08068,Cervelló,Cervelló,Barcelona,cervello,29.0,23.2,1.95729,41.39758,29
+08167,Polinyà,Polinyà,Barcelona,polinya,29.4,26.7,2.15589,41.55704,22
+08296,Vallromanes,Vallromanes,Barcelona,vallromanes,29.4,25.2,2.3037,41.52933,1
+08289,Torrelles de Llobregat,Torrelles de Llobregat,Barcelona,torrelles-de-llobregat,29.5,21.2,1.97794,41.35467,17
+08135,Montmeló,Montmeló,Barcelona,montmelo,29.7,25.7,2.24702,41.55191,36
+08121,Mataró,Mataró,Barcelona,mataro,29.8,32.7,2.43748,41.54302,546
+08158,"Papiol, El",El Papiol,Barcelona,el-papiol,29.9,21.6,2.01654,41.43944,10
+08156,Palau-solità i Plegamans,Palau-solità i Plegamans,Barcelona,palau-solita-i-plegamans,30.5,27.5,2.17847,41.58486,11
+08256,Santa Maria de Martorelles,Santa Maria de Martorelles,Barcelona,santa-maria-de-martorelles,31.3,26.4,2.25723,41.51784,1
+08009,Argentona,Argentona,Barcelona,argentona,31.7,32.8,2.39864,41.55706,11
+08136,Montornès del Vallès,Montornès del Vallès,Barcelona,montornes-del-valles,31.7,26.9,2.26519,41.547,76
+08041,Canovelles,Canovelles,Barcelona,canovelles,32.1,32.2,2.27783,41.61838,72
+08902,Vilanova del Vallès,Vilanova del Vallès,Barcelona,vilanova-del-valles,32.2,31.1,2.30166,41.55605,12
+08279,Terrassa,Terrassa,Barcelona,terrassa,32.6,32.1,2.01786,41.56512,1135
+08054,Castellbisbal,Castellbisbal,Barcelona,castellbisbal,32.7,27.3,1.97817,41.48321,21
+08114,Martorell,Martorell,Barcelona,martorell,32.8,32.4,1.91848,41.47625,71
+08204,Sant Climent de Llobregat,Sant Climent de Llobregat,Barcelona,sant-climent-de-llobregat,33.2,20.0,1.98924,41.33253,4
+08096,Granollers,Granollers,Barcelona,granollers,33.3,31.7,2.28842,41.60739,353
+08108,Lliçà de Vall,Lliçà de Vall,Barcelona,llica-de-vall,33.8,31.6,2.23053,41.59071,13
+08300,Viladecavalls,Viladecavalls,Barcelona,viladecavalls,33.9,31.6,1.95855,41.55818,9
+08072,Corbera de Llobregat,Corbera de Llobregat,Barcelona,corbera-de-llobregat,34.1,27.1,1.93142,41.42231,77
+08033,Caldes de Montbui,Caldes de Montbui,Barcelona,caldes-de-montbui,34.1,33.7,2.16688,41.6344,52
+08295,Vallirana,Vallirana,Barcelona,vallirana,34.2,28.0,1.92329,41.37962,108
+08264,Sant Vicenç de Montalt,Sant Vicenç de Montalt,Barcelona,sant-vicenc-de-montalt,34.8,40.1,2.51372,41.57985,1
+08032,Caldes d'Estrac,Caldes d'Estrac,Barcelona,caldes-d-estrac,34.8,39.9,2.52542,41.57205,13
+08197,Sant Andreu de Llavaneres,Sant Andreu de Llavaneres,Barcelona,sant-andreu-de-llavaneres,35.0,38.5,2.48688,41.57118,15
+08905,"Palma de Cervelló, La",La Palma de Cervelló,Barcelona,la-palma-de-cervello,35.0,24.9,1.96553,41.41111,8
+08290,Ullastrell,Ullastrell,Barcelona,ullastrell,35.3,31.6,1.96388,41.5274,4
+08181,"Roca del Vallès, La",La Roca del Vallès,Barcelona,la-roca-del-valles,35.5,37.0,2.32294,41.59232,45
+08091,Gelida,Gelida,Barcelona,gelida,36.3,36.5,1.86219,41.43911,31
+08270,Sitges,Sitges,Barcelona,sitges,36.5,37.5,1.81627,41.23998,60
+08001,Abrera,Abrera,Barcelona,abrera,36.5,34.9,1.90745,41.51685,36
+08046,Cardedeu,Cardedeu,Barcelona,cardedeu,36.6,39.3,2.35922,41.64121,37
+08107,Lliçà d'Amunt,Lliçà d'Amunt,Barcelona,llica-d-amunt,37.3,32.9,2.21777,41.60791,57
+08076,Esparreguera,Esparreguera,Barcelona,esparreguera,37.5,37.9,1.86458,41.54068,142
+08088,"Garriga, La",La Garriga,Barcelona,la-garriga,37.5,39.3,2.28208,41.68485,12
+08267,Sentmenat,Sentmenat,Barcelona,sentmenat,37.8,34.3,2.13196,41.60737,47
+08208,Sant Esteve Sesrovires,Sant Esteve Sesrovires,Barcelona,sant-esteve-sesrovires,38.1,36.8,1.87011,41.49531,16
+08086,"Franqueses del Vallès, Les",Les Franqueses del Vallès,Barcelona,les-franqueses-del-valles,38.1,35.4,2.30128,41.62816,80
+08005,"Ametlla del Vallès, L'",L'Ametlla del Vallès,Barcelona,l-ametlla-del-valles,38.1,38.4,2.25181,41.66785,20
+08106,Llinars del Vallès,Llinars del Vallès,Barcelona,llinars-del-valles,38.2,42.1,2.40376,41.64042,37
+08006,Arenys de Mar,Arenys de Mar,Barcelona,arenys-de-mar,38.4,43.6,2.54932,41.58114,95
+08231,Sant Pere de Ribes,Sant Pere de Ribes,Barcelona,sant-pere-de-ribes,38.7,41.5,1.76536,41.24552,161
+08147,Olesa de Montserrat,Olesa de Montserrat,Barcelona,olesa-de-montserrat,39.3,38.0,1.89724,41.5468,80
+08040,Canet de Mar,Canet de Mar,Barcelona,canet-de-mar,40.2,45.8,2.57854,41.59387,163
+08153,Òrrius,Òrrius,Barcelona,orrius,40.2,38.6,2.35033,41.55318,1
+08248,Santa Eulàlia de Ronçana,Santa Eulàlia de Ronçana,Barcelona,santa-eulalia-de-roncana,40.6,38.9,2.22034,41.64789,15
+08051,Castellar del Vallès,Castellar del Vallès,Barcelona,castellar-del-valles,41.5,41.3,2.08329,41.6173,106
+08291,Vacarisses,Vacarisses,Barcelona,vacarisses,41.9,38.0,1.91018,41.6039,40
+08119,Masquefa,Masquefa,Barcelona,masquefa,42.2,40.5,1.81638,41.50017,37
+08069,Collbató,Collbató,Barcelona,collbato,42.2,42.5,1.82458,41.56978,10
+08023,Bigues i Riells del Fai,Bigues i Riells del Fai,Barcelona,bigues-i-riells-del-fai,42.3,43.1,2.20548,41.6773,46
+08007,Arenys de Munt,Arenys de Munt,Barcelona,arenys-de-munt,42.5,45.5,2.52983,41.61088,31
+08210,Sant Feliu de Codines,Sant Feliu de Codines,Barcelona,sant-feliu-de-codines,42.8,42.4,2.16336,41.69682,50
+08146,Olesa de Bonesvalls,Olesa de Bonesvalls,Barcelona,olesa-de-bonesvalls,42.9,35.1,1.85658,41.35566,27
+08240,Sant Sadurní d'Anoia,Sant Sadurní d'Anoia,Barcelona,sant-sadurni-d-anoia,43.1,46.7,1.78423,41.43141,42
+08202,Sant Celoni,Sant Celoni,Barcelona,sant-celoni,43.7,51.3,2.49627,41.69092,65
+08053,Castellbell i el Vilar,Castellbell i el Vilar,Barcelona,castellbell-i-el-vilar,43.8,48.7,1.84686,41.63353,29
+08134,Figaró-Montmany,Figaró-Montmany,Barcelona,figaro-montmany,44.2,45.4,2.26227,41.71113,5
+08120,Matadepera,Matadepera,Barcelona,matadepera,44.3,38.2,2.01886,41.61749,7
+08163,Pineda de Mar,Pineda de Mar,Barcelona,pineda-de-mar,44.4,55.6,2.68107,41.62588,256
+08222,Sant Llorenç d'Hortons,Sant Llorenç d'Hortons,Barcelona,sant-llorenc-d-hortons,44.7,39.6,1.83216,41.47265,12
+08035,Calella,Calella,Barcelona,calella,45.0,55.1,2.65757,41.61987,206
+08203,Sant Cebrià de Vallalta,Sant Cebrià de Vallalta,Barcelona,sant-cebria-de-vallalta,45.2,51.8,2.60267,41.62766,37
+08307,Vilanova i la Geltrú,Vilanova i la Geltrú,Barcelona,vilanova-i-la-geltru,45.3,48.0,1.71848,41.22486,327
+08235,Sant Pol de Mar,Sant Pol de Mar,Barcelona,sant-pol-de-mar,45.4,51.0,2.62088,41.607,13
+08042,Cànoves i Samalús,Cànoves i Samalús,Barcelona,canoves-i-samalus,45.9,46.2,2.34639,41.69501,15
+08262,Sant Vicenç de Castellet,Sant Vicenç de Castellet,Barcelona,sant-vicenc-de-castellet,46.2,49.3,1.87002,41.66868,22
+08162,"Hostalets de Pierola, Els",Els Hostalets de Pierola,Barcelona,els-hostalets-de-pierola,46.3,44.7,1.80223,41.53527,30
+08043,Canyelles,Canyelles,Barcelona,canyelles,46.9,49.8,1.7185,41.27841,40
+08305,Vilafranca del Penedès,Vilafranca del Penedès,Barcelona,vilafranca-del-penedes,47.0,54.2,1.69845,41.3458,205
+08074,Cubelles,Cubelles,Barcelona,cubelles,47.1,50.8,1.67084,41.20841,185
+08145,Olèrdola,Olèrdola,Barcelona,olerdola,47.7,56.3,1.72067,41.32272,26
+08287,Torrelavit,Torrelavit,Barcelona,torrelavit,47.7,52.3,1.71758,41.4477,8
+08259,Santa Maria de Palautordera,Santa Maria de Palautordera,Barcelona,santa-maria-de-palautordera,47.8,55.3,2.45221,41.68917,29
+08013,Avinyonet del Penedès,Avinyonet del Penedès,Barcelona,avinyonet-del-penedes,48.4,43.2,1.7779,41.36033,6
+08234,Sant Pere de Vilamajor,Sant Pere de Vilamajor,Barcelona,sant-pere-de-vilamajor,48.8,49.0,2.39221,41.6996,34
+08273,Subirats,Subirats,Barcelona,subirats,48.9,41.1,1.79118,41.38723,5
+08094,"Granada, La",La Granada,Barcelona,la-granada,49.0,54.5,1.72949,41.37962,14
+08193,Sant Iscle de Vallalta,Sant Iscle de Vallalta,Barcelona,sant-iscle-de-vallalta,49.1,48.8,2.56604,41.63322,5
+08127,Monistrol de Montserrat,Monistrol de Montserrat,Barcelona,monistrol-de-montserrat,49.2,54.1,1.83639,41.61515,12
+08025,"Bruc, El",El Bruc,Barcelona,el-bruc,49.6,51.5,1.75821,41.61202,6
+08213,Sant Fruitós de Bages,Sant Fruitós de Bages,Barcelona,sant-fruitos-de-bages,49.7,60.3,1.87093,41.75134,60
+08075,Dosrius,Dosrius,Barcelona,dosrius,49.8,46.2,2.44829,41.6101,44
+08198,Sant Antoni de Vilamajor,Sant Antoni de Vilamajor,Barcelona,sant-antoni-de-vilamajor,50.1,47.7,2.39422,41.66205,19
+08027,"Cabanyes, Les",Les Cabanyes,Barcelona,les-cabanyes,50.1,56.2,1.68982,41.3723,0
+08207,Sant Esteve de Palautordera,Sant Esteve de Palautordera,Barcelona,sant-esteve-de-palautordera,50.2,57.3,2.4246,41.7088,7
+08306,Vilalba Sasserra,Vilalba Sasserra,Barcelona,vilalba-sasserra,50.8,48.6,2.45993,41.64072,2
+08251,Santa Margarida i els Monjos,Santa Margarida i els Monjos,Barcelona,santa-margarida-i-els-monjos,51.1,60.2,1.65851,41.32057,28
+08261,Santa Susanna,Santa Susanna,Barcelona,santa-susanna,51.1,59.7,2.69618,41.64803,33
+08232,Sant Pere de Riudebitlles,Sant Pere de Riudebitlles,Barcelona,sant-pere-de-riudebitlles,51.1,54.6,1.69761,41.45523,7
+08113,Manresa,Manresa,Barcelona,manresa,51.8,56.6,1.82899,41.72745,323
+08154,Pacs del Penedès,Pacs del Penedès,Barcelona,pacs-del-penedes,51.9,58.0,1.65824,41.3586,2
+08140,Navarcles,Navarcles,Barcelona,navarcles,52.3,62.1,1.90981,41.7514,17
+08206,Sant Cugat Sesgarrigues,Sant Cugat Sesgarrigues,Barcelona,sant-cugat-sesgarrigues,52.3,56.2,1.75274,41.35404,1
+08110,Malgrat de Mar,Malgrat de Mar,Barcelona,malgrat-de-mar,52.5,61.5,2.74256,41.64945,111
+08249,Santa Fe del Penedès,Santa Fe del Penedès,Barcelona,santa-fe-del-penedes,52.6,54.5,1.72576,41.39191,1
+08292,Vallbona d'Anoia,Vallbona d'Anoia,Barcelona,vallbona-d-anoia,52.6,53.6,1.70613,41.52631,7
+08174,Puigdàlber,Puigdàlber,Barcelona,puigdalber,52.7,60.5,1.69899,41.4042,5
+43051,Cunit,Cunit,Tarragona,cunit,53.0,58.3,1.6252,41.20414,313
+08239,Sant Quirze Safaja,Sant Quirze Safaja,Barcelona,sant-quirze-safaja,53.3,49.7,2.17988,41.72328,8
+08161,Piera,Piera,Barcelona,piera,53.8,47.6,1.75079,41.51339,159
+17023,Blanes,Blanes,Girona,blanes,54.4,69.2,2.78601,41.67788,210
+08065,Castellví de la Marca,Castellví de la Marca,Barcelona,castellvi-de-la-marca,54.6,62.7,1.61427,41.33353,2
+08304,Vilobí del Penedès,Vilobí del Penedès,Barcelona,vilobi-del-penedes,54.6,59.2,1.66424,41.38958,3
+08223,Sant Llorenç Savall,Sant Llorenç Savall,Barcelona,sant-llorenc-savall,54.7,52.0,2.05581,41.68036,28
+08097,Gualba,Gualba,Barcelona,gualba,55.2,59.8,2.50784,41.73242,4
+08067,Centelles,Centelles,Barcelona,centelles,55.2,55.8,2.21892,41.79078,28
+43037,Calafell,Calafell,Tarragona,calafell,55.3,60.2,1.59176,41.19969,1044
+08087,Gallifa,Gallifa,Barcelona,gallifa,55.4,47.2,2.11782,41.69064,0
+08236,Sant Quintí de Mediona,Sant Quintí de Mediona,Barcelona,sant-quinti-de-mediona,55.4,57.6,1.67108,41.45606,7
+17083,Hostalric,Hostalric,Girona,hostalric,55.5,67.7,2.62997,41.7421,32
+08044,Capellades,Capellades,Barcelona,capellades,55.5,56.1,1.68728,41.52783,13
+08148,Olivella,Olivella,Barcelona,olivella,55.6,49.1,1.79045,41.30501,65
+08028,Cabrera d'Anoia,Cabrera d'Anoia,Barcelona,cabrera-d-anoia,55.7,52.5,1.71645,41.49146,28
+08010,Artés,Artés,Barcelona,artes,55.8,68.5,1.95546,41.79778,24
+08039,Campins,Campins,Barcelona,campins,56.0,58.1,2.47507,41.72217,0
+08302,Vilanova del Camí,Vilanova del Camí,Barcelona,vilanova-del-cami,56.2,61.3,1.64082,41.56819,59
+08017,Balenyà,Balenyà,Barcelona,balenya,56.2,57.0,2.22599,41.81766,6
+08063,Castellolí,Castellolí,Barcelona,castelloli,56.3,55.2,1.70828,41.59207,1
+08283,Tona,Tona,Barcelona,tona,56.3,60.9,2.22635,41.84978,51
+17027,Breda,Breda,Girona,breda,56.5,61.2,2.55848,41.74991,8
+08284,Tordera,Tordera,Barcelona,tordera,56.5,65.9,2.70921,41.69908,256
+08055,Castellcir,Castellcir,Barcelona,castellcir,56.5,52.3,2.12314,41.76643,4
+08224,Sant Martí de Centelles,Sant Martí de Centelles,Barcelona,sant-marti-de-centelles,56.7,52.5,2.23235,41.7506,4
+08192,Santpedor,Santpedor,Barcelona,santpedor,56.7,63.8,1.83106,41.78491,16
+08155,Palafolls,Palafolls,Barcelona,palafolls,56.7,66.8,2.73945,41.67114,98
+43163,"Vendrell, El",El Vendrell,Tarragona,el-vendrell,57.0,68.0,1.53045,41.21153,556
+43016,"Arboç, L'",L'Arboç,Tarragona,l-arboc,57.2,67.6,1.60133,41.27115,24
+08111,Malla,Malla,Barcelona,malla,57.5,64.2,2.24548,41.87961,0
+08164,"Pla del Penedès, El",El Pla del Penedès,Barcelona,el-pla-del-penedes,57.5,55.2,1.7185,41.41455,14
+43140,Santa Oliva,Santa Oliva,Tarragona,santa-oliva,58.0,72.4,1.53432,41.24723,28
+43131,Roda de Berà,Roda de Berà,Tarragona,roda-de-bera,58.0,70.5,1.47329,41.17745,94
+17159,Sant Feliu de Buixalleu,Sant Feliu de Buixalleu,Girona,sant-feliu-de-buixalleu,58.8,73.4,2.58167,41.77146,8
+08286,"Torre de Claramunt, La",La Torre de Claramunt,Barcelona,la-torre-de-claramunt,58.9,58.3,1.66626,41.5266,37
+43024,Bellvei,Bellvei,Tarragona,bellvei,59.1,67.8,1.56742,41.23127,14
+17101,Massanes,Massanes,Girona,massanes,59.5,71.7,2.65241,41.77868,16
+08102,Igualada,Igualada,Barcelona,igualada,59.7,64.4,1.61881,41.58259,315
+17103,Maçanet de la Selva,Maçanet de la Selva,Girona,macanet-de-la-selva,59.8,77.9,2.73021,41.77249,196
+08191,Sallent,Sallent,Barcelona,sallent,60.0,68.8,1.90759,41.83166,18
