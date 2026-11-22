@@ -1,0 +1,4 @@
+run_id,product,fetched_at,id,condition,views,favorites,conversations,brand,model,year,km,attrs_json
+20261122T061820Z,nux-mg-30,2026-11-22T06:19:52+00:00,x6qq5o4rno6y,new,18,0,1,,,,,"{""condition"": ""new"", ""up_to_kg"": ""5.0""}"
+20261122T061820Z,yamaha-tracer-7,2026-11-22T06:20:27+00:00,8j387g9rv1z9,,32,2,0,Yamaha,Tracer 700,2022,9829,"{""brand"": ""Yamaha"", ""model"": ""Tracer 700"", ""year"": ""2022"", ""km"": ""9829"", ""motorbike_style"": ""adventure""}"
+20261122T061820Z,kymco-super-dink-125,2026-11-22T06:21:24+00:00,3zlmv72woqjx,,7,0,0,Kymco,Super Dink,2020,23709,"{""brand"": ""Kymco"", ""model"": ""Super Dink"", ""km"": ""23709"", ""motorbike_style"": ""maxi_scooter"", ""color"": ""red"", ""year"": ""2020""}"
