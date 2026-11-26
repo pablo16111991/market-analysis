@@ -1,5 +1,7 @@
 # second-hand (Wallapop) — módulo de market-analysis
 
+**Pausado temporalmente desde el 26-11-2026** (workflow y tarea programada desactivados). No lo reactives salvo que Pablo lo pida; pasos en `README.md`.
+
 Analizador de precios de Wallapop de Pablo. Todas las rutas son relativas a `second-hand/` (datos en `second-hand/data/`) (sin servicios de pago). Responde en español, corto y directo.
 
 Objetivo: por cuánto lo ponen a la venta (activos) y por cuánto se vende (vendidos y reservados). El precio es una conclusión, nunca una entrada: no uses el presupuesto de Pablo. Sus precios mínimo y máximo son filtros de limpieza.
